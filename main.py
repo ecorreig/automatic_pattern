@@ -1,32 +1,30 @@
 __author__ = 'dracks'
 
 import models
+from Api.Manager import DataManager
 
 
 def main():
-    es = models.Language.get('es')
+    es = DataManager.sharedManager().query('language', 'es')
     print es
-    print es.name.get()
-    print es.id.get()
+    print es.name
+    print es.id
     patterns = models.Pattern.get()
-    print(patterns[0].id.get())
-    print(patterns[0].language.get())
-    print(patterns[0].blocks.get())
-    #print(patterns[1].language.get())
-    #print(patterns[1].blocks.get())
-    test = patterns[0]
+    print(patterns[0].id)
+    print(patterns[0].language.name)
+    print(patterns[0].blocks)
+    test = patterns[1]
 
-    test.name.set("Hola holita")
+    test.name = "Modificat from automatic pattern"
     test.save()
 
     newpattern = models.Pattern()
-    newpattern.name.set("New from python")
-    newpattern.language.set(es)
-    p=newpattern.save()
+    newpattern.name = "New from python 2"
+    newpattern.language = models.Language.get("ca")
+    p = newpattern.save()
 
-    print newpattern.id.get(), p.id.get()
+    print newpattern.id, p.id
 
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

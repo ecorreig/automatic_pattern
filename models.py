@@ -6,6 +6,17 @@ from Api.EndpointModel import Model
 
 
 @DataManager.endpoint
+class AttachmentCategories(Model):
+    _name = ['attachmentCategory', 'attachmentCategories']
+    _fields = ['id', 'name']
+
+@DataManager.endpoint
+class Attachment(Model):
+    _name = ['attachment', 'attachments']
+    _fields = ['id', 'category', 'name', 'description']
+    category = EndpointProperties.BelongsTo('attachmentCategory')
+
+@DataManager.endpoint
 class Pattern(Model):
     _name = ['pattern', 'patterns']
     _fields = ['id', 'name', 'language', 'blocks']

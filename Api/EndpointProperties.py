@@ -28,11 +28,11 @@ class AbstractDataType(InterfaceProperty):
 
     def _getModel(self):
         if self.__model is None:
-            self.__model = DataManager.get(self.__name)
+            self.__model = DataManager.sharedManager().get(self.__name)
         return self.__model
 
     def _set(self, value):
-        print value, self.value
+        #print value, self.value
         self.cache = None
         self.value = value
 
