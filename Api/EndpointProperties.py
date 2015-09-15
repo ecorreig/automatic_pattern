@@ -16,13 +16,13 @@ class InterfaceProperty:
 
 class AbstractDataType(InterfaceProperty):
     def __init__(self, name):
-        self.__name = name
+        self._name = name
         self.__model = None
         self.cache = None
         self.value = None
 
     def instantiate(self, value):
-        new = self.__class__(self.__name)
+        new = self.__class__(self._name)
         new._set(value)
         return new
 
@@ -61,7 +61,7 @@ class HasMany(AbstractDataType):
         assert self.value is not None, "Instance not initialized"
         if self.cache is None:
             manager = DataManager.sharedManager()
-            name = self.__name
+            name = self._name
             self.cache = map(lambda e: manager.retrieve(name, e), self.value)
 
         return self.cache
@@ -79,7 +79,7 @@ class BelongsTo(AbstractDataType):
         assert self.value is not None, "Instance not initialized"
         if self.cache is None:
             manager = DataManager.sharedManager()
-            name = self.__name
+            name = self._name
             self.cache = manager.retrieve(name, self.value)
 
         return self.cache
