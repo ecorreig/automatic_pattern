@@ -10,24 +10,27 @@ class DataManager:
     @classmethod
     def sharedManager(cls):
         if not cls.__manager:
-            cls.__manager=cls()
+            cls.__manager = cls()
 
         return cls.__manager
 
     @classmethod
     def endpoint(cls, model):
         manager = cls.sharedManager()
-        model._manager=manager
+        model._manager = manager
         manager._models_dict[model._name[0]] = model
         return model
 
     def __init__(self):
-        self._models_dict={}
-        self._cache={}
+        self._models_dict = {}
+        self._cache = {}
         self._get_connection()
 
-    def _get_connection(cls):
-        conf = json.load(open('config.json', 'r'))
+    def set_config(self, config):
+        self._get_connection(config)
+
+    def _get_connection(cls, config='config.json'):
+        conf = json.load(open(config, 'r'))
         cls._con = Connector(conf['host'], conf['path'], conf['token'])
 
     def query(self, cls, request=None, query=None):
@@ -36,7 +39,7 @@ class DataManager:
 
         call = cls._name[1]
         if request:
-            call = call +"/"+request
+            call = call + "/" + request
         if query:
             call = call + "?" + query
 
@@ -55,6 +58,17 @@ class DataManager:
             print response.response_body
             raise e
 
+    def retrieve(self, model, id):
+        model_cache = self._cache.get(model, None)
+        if model_cache is None:
+            model_cache = {}
+            self._cache[model] = model_cache
+        cache = model_cache.get(id, None)
+        if cache is None:
+            cache = self.query(model, id)
+            model_cache[id] = cache
+        return cache
+
     def get_all(self, model):
         list_data = []
         reply_has_data = True
@@ -65,6 +79,5 @@ class DataManager:
 
             return list_data
 
-
-    def get(cls,name):
+    def get(cls, name):
         return cls.__manager._models_dict.get(name, None)

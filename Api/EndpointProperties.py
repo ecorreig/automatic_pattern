@@ -26,11 +26,6 @@ class AbstractDataType(InterfaceProperty):
         new._set(value)
         return new
 
-    def _getModel(self):
-        if self.__model is None:
-            self.__model = DataManager.sharedManager().get(self.__name)
-        return self.__model
-
     def _set(self, value):
         #print value, self.value
         self.cache = None
@@ -65,8 +60,9 @@ class HasMany(AbstractDataType):
     def get(self):
         assert self.value is not None, "Instance not initialized"
         if self.cache is None:
-            model = self._getModel()
-            self.cache = map(lambda e: model.get(e), self.value)
+            manager = DataManager.sharedManager()
+            name = self.__name
+            self.cache = map(lambda e: manager.retrieve(name, e), self.value)
 
         return self.cache
 
@@ -82,7 +78,9 @@ class BelongsTo(AbstractDataType):
     def get(self):
         assert self.value is not None, "Instance not initialized"
         if self.cache is None:
-            self.cache = self._getModel().get(self.value)
+            manager = DataManager.sharedManager()
+            name = self.__name
+            self.cache = manager.retrieve(name, self.value)
 
         return self.cache
 
