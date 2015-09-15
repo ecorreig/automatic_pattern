@@ -19,12 +19,12 @@ def main():
     print (patterns[-1].name)
     print (patterns[-1].language.name)
 
+	"""
     nou = models.Pattern()
     nou.name = "Nou patro"
     nou.language = models.Language.get("es")
     nou.save()
 
-    """
     test = patterns[1]
 
     test.name = "Modificat from automatic pattern"
