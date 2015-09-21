@@ -17,11 +17,13 @@ class Model(object):
         self.__data = {}
 
         for field in self._fields:
+            value=data.get(field, None)
+            #print field, value
             if hasattr(self, field):
                 attr = getattr(self, field)
-                self.__data[field] = attr.instantiate(data.get(field, None))
+                self.__data[field] = attr.instantiate(value)
             else:
-                attr = Property(data.get(field, None))
+                attr = Property(value)
                 self.__data[field] = attr
 
     def __getattribute__(self, item):
