@@ -49,7 +49,7 @@ class ModelSession(Model):
 @DataManager.endpoint
 class Session(Model):
     _name = ['session', 'sessions']
-    _fields = ['id', 'student', 'name', 'time', 'completed_time','creation_time', 'statusBegin', 'statusEnd', 'publishDate', 'difficulty', 'tag', 'version', 'modelBased']
+    _fields = ['id', 'student', 'name', 'time', 'completed_time','creation_time', 'status_begin', 'status_end', 'publish_date', 'difficulty', 'tag', 'version', 'model_based']
 
 
 @DataManager.endpoint
@@ -57,6 +57,13 @@ class Block(Model):
     _name = ['block', 'blocks']
     _fields = ['id', 'name', 'sessions']
     sessions = EndpointProperties.HasMany('blockSession')
+
+
+@DataManager.endpoint
+class BlockJumpCondition (Model):
+    _name = ['blockJumpCondition', 'blockJumpConditions']
+    _fields = ['id', 'block_jump', 'current_level', 'min_percentile', 'max_percentile', 'motivation', 'repeat_block', 'next_level', 'warning']
+    #sessions = EndpointProperties.HasMany('blockSession')
 
 
 @DataManager.endpoint

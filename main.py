@@ -1,8 +1,10 @@
 __author__ = 'dracks'
 
 import models
-import datetime
 from Api.Manager import DataManager
+import datetime 
+from datetime import date, timedelta
+from operator import attrgetter
 
 
 def test():
@@ -56,38 +58,45 @@ def day_week():
     return weekdays[datetime.datetime.today().weekday()] 
 
 
+def week_start_date(d=datetime.datetime.today()):  
+    return d - timedelta(d.weekday())
+
+
 
 def next_session(list_sessions, position, level, older):
-    if (.....):					#si no és la última sessió del bloc
-        order=older.session.order +1
-        session=model.BlockSession.get(query="order={order}&level={level}")
-        older.session=session.session
-    else:
-       pass
+    if (position < len(list_sessions)):					#si no es la utima sessio del bloc
+        position+=1
+        older.session=list_sessions[position]
+    else:												#canvi de bloc
+       block_jump=models.blockJump.get(query="block_jump={jump}".format(jump=older.block.block_jump))
+       
+
 
 
 
 def main():
     today= day_week()																				#guardem el nom del dia actual
     llista_olders= models.OlderConfig.get()															#Llista tots els olders disponibles
-    monday=datetime.datetime.today()  #SHA DE CANVIAR!!
+    monday=week_start_date()
 
     for older in llista_olders:
         working=older.workingDays
         if (getattr(working, today)):
             block=older.block
             level=older.level
+            session=older.session
             list_block_sessions=filter(lambda e: e.level==level, block.sessions)							#llistat de sessions al bloc (amb atributs)
-            list_block_sessions=sorted(list_block_sessions, attrgetter('order'))
+            list_block_sessions=sorted(list_block_sessions, key=attrgetter('order'))
             list_sessions=map(lambda e: e.session, list_block_sessions)										#llistat id_sessions del bloc
-            position=list_session.index(older.session)
-            
+            #position=list_sessions.index(session)
+
+
             sessions=models.Session.get(query="student={older}&size=20".format(older=older.older))
-            not_done_list=filter(lambda e: e.completedTime is not None,sessions)					#sessions no fetes
+            not_done_list=filter(lambda e: e.completed_time is not None,sessions)					#sessions no fetes
             not_done=len(not_done_list)
-            sessions_block=filter(lambda e: e.model in list_sessions, not_done_list)
-            not_done_pattern=len(session_block)
-            sessions_week= filter(lambda e: e.completedTime>=monday , sessions)
+            sessions_block=filter(lambda e: e.model_based in list_sessions, not_done_list)
+            not_done_pattern=len(sessions_block)
+            sessions_week= filter(lambda e: e.publish_date>= str(monday) , sessions)
             s_week=len(sessions_week)
             cont=older.numberSessions
 
@@ -97,6 +106,7 @@ def main():
                 new_session.publishDate=datetime.datetime.today()
                 new_session.modelBased=older.session
                 new_session.save()
+
                 #actualitzar older
                 older.session=next_session(list_block_sessions, position, level, older)
                 not_done_pattern+=1
