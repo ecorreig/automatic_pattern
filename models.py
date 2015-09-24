@@ -55,15 +55,21 @@ class Session(Model):
 @DataManager.endpoint
 class Block(Model):
     _name = ['block', 'blocks']
-    _fields = ['id', 'name', 'sessions']
+    _fields = ['id', 'name', 'sessions', 'block_jump_condition', 'order']
     sessions = EndpointProperties.HasMany('blockSession')
+    block_jump_condition=EndpointProperties.BelongsTo('blockJumpCondition')
 
 
 @DataManager.endpoint
 class BlockJumpCondition (Model):
     _name = ['blockJumpCondition', 'blockJumpConditions']
     _fields = ['id', 'block_jump', 'current_level', 'min_percentile', 'max_percentile', 'motivation', 'repeat_block', 'next_level', 'warning']
-    #sessions = EndpointProperties.HasMany('blockSession')
+
+
+@DataManager.endpoint
+class BlockJumpDefault (Model):
+    _name = ['blockJumpDefault', 'blockJumpDefaults']
+    _fields = ['id', 'block_jump', 'current_level', 'repeat_block', 'next_level', 'warning']
 
 
 @DataManager.endpoint

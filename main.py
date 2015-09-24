@@ -68,9 +68,14 @@ def next_session(list_sessions, position, level, older):
         position+=1
         older.session=list_sessions[position]
     else:												#canvi de bloc
-       block_jump=models.blockJump.get(query="block_jump={jump}".format(jump=older.block.block_jump))
-       
-
+       if (older.block.block_jump_condition is not null):							#te un salt associat
+            jump_conditions=older.block.block_jump_condition
+            #no se ben be com validar les condicions, ni si cal complir-les totes
+       else:																		#salt per defecte
+            jump_conditions=models.BlockJumpDefault.get(query="block_jump={block}&current_level={c_level}".format(block=older.block, c_level=level))
+            older.level=jump_conditions.next_level
+            if (not jump_conditions.repeat_block):
+                older.block=#no entenc com ho aconsegueixo
 
 
 
