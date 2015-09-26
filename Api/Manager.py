@@ -4,11 +4,17 @@ from Connector import Connector
 import json
 
 
+# from EndpointModel import Model as AbstractModel
+
 class DataManager:
     __manager = None
 
     @classmethod
     def sharedManager(cls):
+        """
+
+        :return: DateManager
+        """
         if not cls.__manager:
             cls.__manager = cls()
 
@@ -34,6 +40,14 @@ class DataManager:
         cls._con = Connector(conf['host'], conf['path'], conf['token'])
 
     def query(self, cls, request=None, query=None):
+        """
+
+        :param cls:
+        :type cls: EndpointModel.Model or str
+        :param request:
+        :param query:
+        :return:
+        """
         if isinstance(cls, str):
             cls = self.get(cls)
 
@@ -50,13 +64,33 @@ class DataManager:
             if single is None:
                 data = data.get(cls._name[1], None)
                 assert (data is not None), response.response_body
-                return map(cls, data)
+                list_objects = map(cls, data)
+                for obj in list_objects:
+                    self.__register_cache(obj)
+                return list_objects
             else:
-                return cls(single)
+                obj = cls(single)
+                self.__register_cache(obj)
+                return obj
         except ValueError, e:
             print call
             print response.response_body
             raise e
+
+    def __register_cache(self, obj):
+        """
+        Register an object to the cache
+        :param obj:
+        :type obj: AbstractModel
+        :return:
+        """
+        model = obj._name[0]
+        pk = obj.get_pk()
+        model_cache = self._cache.get(model, None)
+        if model_cache is None:
+            model_cache = {}
+            self._cache = model_cache
+        model_cache[pk] = obj
 
     def retrieve(self, model, id):
         model_cache = self._cache.get(model, None)
@@ -69,6 +103,13 @@ class DataManager:
             model_cache[id] = cache
         return cache
 
+    def retrieve_all(self, model):
+        model_cache = self._cache.get(model, None)
+        if model_cache is None:
+            return []
+        else:
+            return map(lambda e: model_cache[e], model_cache.keys())
+
     def get_all(self, model):
         list_data = []
         reply_has_data = True
@@ -79,5 +120,10 @@ class DataManager:
 
             return list_data
 
-    def get(cls, name):
-        return cls.__manager._models_dict.get(name, None)
+    def get(self, name):
+        """
+        Get a class from the models dictionary
+        :param name:
+        :return:
+        """
+        return self.__manager._models_dict.get(name, None)

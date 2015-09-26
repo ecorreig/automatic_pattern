@@ -1,6 +1,8 @@
 __author__ = 'dracks'
 
 from Manager import DataManager
+import dateutil.parser
+import time
 
 
 class InterfaceProperty:
@@ -27,7 +29,7 @@ class AbstractDataType(InterfaceProperty):
         return new
 
     def _set(self, value):
-        #print value, self.value
+        # print value, self.value
         self.cache = None
         self.value = value
 
@@ -50,6 +52,20 @@ class Property(InterfaceProperty):
 
     def serialize(self):
         return self.value
+
+
+class DateProperty(Property):
+    def __init__(self, value=None):
+        Property.__init__(self, value)
+
+    def instantiate(self, value):
+        if value is not None:
+            return DateProperty(dateutil.parser.parse(value))
+        else:
+            return DateProperty()
+
+    def serialize(self):
+        return self.value.isoformat()
 
 
 class HasMany(AbstractDataType):
@@ -76,8 +92,9 @@ class BelongsTo(AbstractDataType):
         AbstractDataType.__init__(self, name)
 
     def get(self):
-        assert self.value is not None, "Instance not initialized"
         if self.cache is None:
+            if self.value is None:
+                return None
             manager = DataManager.sharedManager()
             name = self._name
             self.cache = manager.retrieve(name, self.value)

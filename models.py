@@ -3,6 +3,69 @@ __author__ = 'dracks'
 from Api import EndpointProperties
 from Api.Manager import DataManager
 from Api.EndpointModel import Model
+from datetime import datetime
+
+
+@DataManager.endpoint
+class Older(Model):
+    _name = ['student', 'students']
+    _fields = ['id', 'birthday', 'group', 'course_difference']
+    group = EndpointProperties.BelongsTo('group')
+    birthday = EndpointProperties.DateProperty()
+
+    def get_course(self, date=datetime.today()):
+        """
+
+        :param date:
+        :return: A course instance
+        """
+        if self.birthday is not None:
+            age = date.year - self.birthday.year
+            if date.month < 8:
+                age -= 1
+
+            for course in DataManager.sharedManager().retrieve_all('course'):
+                if course.age == age:
+                    return course
+            return None
+        else:
+            # Thats not good, we don't use the date.
+            return self.group.course
+
+
+@DataManager.endpoint
+class Group(Model):
+    _name = ['group', 'groups']
+    _fields = ['id', 'course', 'name']
+    # No es necessari el curs, perque amb l'id en tenim suficient
+    course = EndpointProperties.BelongsTo('course')
+
+
+@DataManager.endpoint
+class Course(Model):
+    _name = ['course', 'courses']
+    _fields = ['id', 'age']
+
+
+@DataManager.endpoint
+class Percentile(Model):
+    _name = ['percentile', 'percentiles']
+    _fields = ["id", "type", "course", "p0", "p5", "p10", "p15", "p20", "p25", "p30", "p35", "p40", "p45", "p50",
+               "p55", "p60", "p65", "p70", "p75", "p80", "p85", "p90", "p95", "p100", "semester"]
+
+    def get_value(self, velocity):
+        if velocity < getattr(self, "p0"):
+            return 0
+
+        for i in range(0, 20):
+            percentile = i * 5
+            check = (getattr(self, "p" + str(percentile)) + getattr(self, "p" + str(percentile + 5))) / 2
+            # console.log(percentile+" check : "+ this.get("p"+percentile)+ " vs " + velocity)
+            if check >= velocity:
+                # console.log(velocity+" -> "+this.get("p"+percentile)+"-"+this.get("p"+(percentile+5)));
+                return percentile
+
+        return 105
 
 
 @DataManager.endpoint
@@ -10,11 +73,13 @@ class AttachmentCategories(Model):
     _name = ['attachmentCategory', 'attachmentCategories']
     _fields = ['id', 'name']
 
+
 @DataManager.endpoint
 class Attachment(Model):
     _name = ['attachment', 'attachments']
     _fields = ['id', 'category', 'name', 'description']
     category = EndpointProperties.BelongsTo('attachmentCategory')
+
 
 @DataManager.endpoint
 class Pattern(Model):
@@ -22,61 +87,97 @@ class Pattern(Model):
     _fields = ['id', 'name', 'language', 'blocks']
     language = EndpointProperties.BelongsTo('language')
     blocks = EndpointProperties.HasMany('block')
-    
-    
+
 
 @DataManager.endpoint
 class OlderConfig(Model):
     _name = ['olderPatternRelation', 'olderPatternRelations']
-    _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions','maxSessionWeek', 'block', 'level', 'session']
-    pattern=EndpointProperties.BelongsTo('pattern')
-    workingDays=EndpointProperties.BelongsTo('daysWork')
-    session=EndpointProperties.BelongsTo('session')
+    _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions', 'maxSessionWeek', 'block', 'level', 'session',
+               'warnings']
+    pattern = EndpointProperties.BelongsTo('pattern')
+    workingDays = EndpointProperties.BelongsTo('daysWork')
+    session = EndpointProperties.BelongsTo('session')
     block = EndpointProperties.BelongsTo('block')
+    warnings = EndpointProperties.HasMany('warning')
+
 
 @DataManager.endpoint
 class WorkingDays(Model):
     _name = ['daysWork', 'daysWorks']
-    _fields = ['id', 'monday', 'tuesday', 'wednesday', 'thursday','friday', 'saturday', 'sunday']
+    _fields = ['id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
 @DataManager.endpoint
 class ModelSession(Model):
-    _name=['sessionModel', 'sessionModels']
-    _fields=['id', 'name']
+    _name = ['sessionModel', 'sessionModels']
+    _fields = ['id', 'name', 'type_percentile']
 
 
 @DataManager.endpoint
 class Session(Model):
     _name = ['session', 'sessions']
-    _fields = ['id', 'student', 'name', 'time', 'completed_time','creation_time', 'status_begin', 'status_end', 'publish_date', 'difficulty', 'tag', 'version', 'model_based']
+    _fields = ['id', 'student', 'name', 'time', 'completed_time', 'creation_time', 'status_begin', 'status_end',
+               'publish_date', 'difficulty', 'tag', 'version', 'model_based', 'list_activities']
+    list_activities = EndpointProperties.HasMany('activity')
+    completed_time = EndpointProperties.DateProperty()
+    publish_date = EndpointProperties.DateProperty()
+    model_based = EndpointProperties.BelongsTo('ModelSession')
+
+
+@DataManager.endpoint
+class Activity(Model):
+    _name = ['activity', 'activites']
+    _fields = ['id', 'orden', 'times', 'words_minute']
 
 
 @DataManager.endpoint
 class Block(Model):
     _name = ['block', 'blocks']
-    _fields = ['id', 'name', 'sessions', 'block_jump_condition', 'order']
+    _fields = ['id', 'name', 'sessions', 'blockJump', 'order']
     sessions = EndpointProperties.HasMany('blockSession')
-    block_jump_condition=EndpointProperties.BelongsTo('blockJumpCondition')
+    blockJump = EndpointProperties.BelongsTo('blockJump')
 
 
 @DataManager.endpoint
-class BlockJumpCondition (Model):
+class BlockJump(Model):
+    _name = ['blockJump', 'blockJumps']
+    _fields = ['id', 'name', 'conditions', 'defaults']
+    conditions = EndpointProperties.HasMany('blockJumpCondition')
+    defaults = EndpointProperties.HasMany('blockJumpDefault')
+
+
+@DataManager.endpoint
+class BlockJumpCondition(Model):
     _name = ['blockJumpCondition', 'blockJumpConditions']
-    _fields = ['id', 'block_jump', 'current_level', 'min_percentile', 'max_percentile', 'motivation', 'repeat_block', 'next_level', 'warning']
+    _fields = ['id', 'level', 'minPercentile', 'maxPercentile', 'motivation', 'repeatBlock',
+               'nextLevel', 'warning']
+
+    def check(self, percentile, motivation):
+        if self.minPercentile is not None and percentile < self.minPercentile:
+            return False
+        if self.maxPercentile is not None and percentile > self.maxPercentile:
+            return False
+        # TODO Check the motivation
+        return True
 
 
 @DataManager.endpoint
-class BlockJumpDefault (Model):
+class BlockJumpDefault(Model):
     _name = ['blockJumpDefault', 'blockJumpDefaults']
-    _fields = ['id', 'block_jump', 'current_level', 'repeat_block', 'next_level', 'warning']
+    _fields = ['id', 'block_jump', 'level', 'repeatBlock', 'nextLevel', 'warning']
 
 
 @DataManager.endpoint
 class BlockSession(Model):
-    _name=['blockSession','blockSessions']
-    _fields=['id', 'level','order', 'useData', 'session']
-    #sessions=EndpointProperties.BelongsTo('modelSession')
+    _name = ['blockSession', 'blockSessions']
+    _fields = ['id', 'level', 'order', 'useData', 'session']
+    # sessions=EndpointProperties.BelongsTo('modelSession')
+
+
+@DataManager.endpoint
+class Warnings(Model):
+    _name = ['warning', 'warnings']
+    _fields = ['id', 'code']
 
 
 @DataManager.endpoint
