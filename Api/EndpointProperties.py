@@ -59,13 +59,39 @@ class DateProperty(Property):
         Property.__init__(self, value)
 
     def instantiate(self, value):
-        if value is not None:
+        if value is not None and value != "0000-00-00":
             return DateProperty(dateutil.parser.parse(value))
         else:
             return DateProperty()
 
     def serialize(self):
-        return self.value.isoformat()
+        if self.value is not None:
+            return self.value.isoformat()
+        else:
+            return None
+
+
+class BooleanProperty(Property):
+    def __init__(self, value=None):
+        Property.__init__(self, value)
+
+    def instantiate(self, value):
+        b = False
+        if isinstance(value, str):
+            if value.lower() == 'true':
+                b = True
+        elif isinstance(value, bool):
+            b=value
+        return BooleanProperty(b)
+
+    def serialize(self):
+        if self.value is not None:
+            if self.value:
+                return "true"
+            else:
+                return "false"
+        else:
+            return None
 
 
 class HasMany(AbstractDataType):

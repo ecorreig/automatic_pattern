@@ -87,7 +87,7 @@ class Model(object):
         try:
             newdata = json.loads(response.response_body)
             single = newdata.get(self._name[0], None)
-            assert single, "Should return a json with an object of type single"
+            assert single, "Should return a json with an object of type single. Response:"+response.response_body
             for field in self._fields:
                 attribute = _data.get(field, None)
                 attribute._set(single.get(field, None))

@@ -355,7 +355,7 @@ class RunTests(unittest.TestCase):
         self.assertEqual(self.count['update_config'], 2)
         self.assertEqual(self.count['get_counters'], 1)
         self.assertEqual(self.count['configuration_save'], 1)
-        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&size=20')
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&count=20')
 
     def test_max_sessions_week(self):
         self.get_counters_value = (0, 0, 4)
@@ -363,21 +363,31 @@ class RunTests(unittest.TestCase):
         main.run(self.configuration, "monday")
         self.assertEqual(self.count['pauta'], 1)
         self.assertEqual(self.count['configuration_save'], 1)
-        self.assertEqual(mocks.MockSession.get_args['query'], 'student=3&size=20')
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=3&count=20')
 
     def test_max_sessions(self):
         self.get_counters_value = (9, 0, 0)
         main.run(self.configuration, "monday")
         self.assertEqual(self.count['pauta'], 1)
         self.assertEqual(self.count['configuration_save'], 1)
-        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&size=20')
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&count=20')
 
     def test_sessions(self):
         self.get_counters_value = (0, 3, 0)
         main.run(self.configuration, "monday")
         self.assertEqual(self.count['pauta'], 1)
         self.assertEqual(self.count['configuration_save'], 1)
-        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&size=20')
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&count=20')
+
+    def test_no_max_sessions_week(self):
+        self.configuration.maxSessionWeek=None
+        self.get_counters_value=(0,0,4)
+        main.run(self.configuration, "monday")
+        self.assertEqual(self.count['pauta'], 2)
+        self.assertEqual(self.count['update_config'], 2)
+        self.assertEqual(self.count['get_counters'], 1)
+        self.assertEqual(self.count['configuration_save'], 1)
+
 
 
 class MainTest(unittest.TestCase):

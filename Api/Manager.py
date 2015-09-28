@@ -3,6 +3,7 @@ __author__ = 'dracks'
 from Connector import Connector
 import json
 
+import sys, traceback
 
 # from EndpointModel import Model as AbstractModel
 
@@ -49,7 +50,9 @@ class DataManager:
         :return:
         """
         if isinstance(cls, str):
+            cls_name=cls
             cls = self.get(cls)
+            assert cls is not None, "The class name {c} is not registered".format(c=cls_name)
 
         call = cls._name[1]
         if request:
@@ -75,6 +78,8 @@ class DataManager:
         except ValueError, e:
             print call
             print response.response_body
+            type_, value_, traceback_ = sys.exc_info()
+            print "".join(traceback.format_exception(type_, value_, traceback_))
             raise e
 
     def __register_cache(self, obj):
@@ -89,7 +94,7 @@ class DataManager:
         model_cache = self._cache.get(model, None)
         if model_cache is None:
             model_cache = {}
-            self._cache = model_cache
+            self._cache[model] = model_cache
         model_cache[pk] = obj
 
     def retrieve(self, model, id):
@@ -114,7 +119,7 @@ class DataManager:
         list_data = []
         reply_has_data = True
         while reply_has_data:
-            data = self.get(model, query="offset={0}&count=100".format(len(list_data)))
+            data = self.query(model, query="offset={0}&count=100".format(len(list_data)))
             reply_has_data = len(data) > 0
             list_data.extend(data)
 
@@ -125,5 +130,6 @@ class DataManager:
         Get a class from the models dictionary
         :param name:
         :return:
+        :rtype: class or None
         """
-        return self.__manager._models_dict.get(name, None)
+        return self._models_dict.get(name, None)

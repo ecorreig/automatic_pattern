@@ -94,10 +94,10 @@ class OlderConfig(Model):
     _name = ['olderPatternRelation', 'olderPatternRelations']
     _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions', 'maxSessionWeek', 'block', 'level', 'session',
                'warnings']
-    older = EndpointProperties.BelongsTo('older')
+    older = EndpointProperties.BelongsTo('student')
     pattern = EndpointProperties.BelongsTo('pattern')
     workingDays = EndpointProperties.BelongsTo('daysWork')
-    session = EndpointProperties.BelongsTo('session')
+    session = EndpointProperties.BelongsTo('sessionModel')
     block = EndpointProperties.BelongsTo('block')
     warnings = EndpointProperties.HasMany('warning')
 
@@ -122,12 +122,13 @@ class Session(Model):
     list_activities = EndpointProperties.HasMany('activity')
     completed_time = EndpointProperties.DateProperty()
     publish_date = EndpointProperties.DateProperty()
-    model_based = EndpointProperties.BelongsTo('ModelSession')
+    model_based = EndpointProperties.BelongsTo('sessionModel')
+    student = EndpointProperties.BelongsTo('student')
 
 
 @DataManager.endpoint
 class Activity(Model):
-    _name = ['activity', 'activites']
+    _name = ['activity', 'activities']
     _fields = ['id', 'orden', 'times', 'words_minute']
 
 
@@ -153,6 +154,8 @@ class BlockJumpCondition(Model):
     _fields = ['id', 'level', 'minPercentile', 'maxPercentile', 'motivation', 'repeatBlock',
                'nextLevel', 'warning']
 
+    repeatBlock = EndpointProperties.BooleanProperty()
+
     def check(self, percentile, motivation):
         if self.minPercentile is not None and percentile < self.minPercentile:
             return False
@@ -167,18 +170,20 @@ class BlockJumpDefault(Model):
     _name = ['blockJumpDefault', 'blockJumpDefaults']
     _fields = ['id', 'block_jump', 'level', 'repeatBlock', 'nextLevel', 'warning']
 
+    repeatBlock = EndpointProperties.BooleanProperty()
+
 
 @DataManager.endpoint
 class BlockSession(Model):
     _name = ['blockSession', 'blockSessions']
     _fields = ['id', 'level', 'order', 'useData', 'session']
-    # sessions=EndpointProperties.BelongsTo('modelSession')
+    session = EndpointProperties.BelongsTo('sessionModel')
 
 
 @DataManager.endpoint
 class Warnings(Model):
     _name = ['warning', 'warnings']
-    _fields = ['id', 'code']
+    _fields = ['id', 'code', 'level', 'name']
 
 
 @DataManager.endpoint
