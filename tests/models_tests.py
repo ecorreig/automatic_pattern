@@ -5,6 +5,25 @@ import models
 import dateutil.parser
 from Api.Manager import DataManager
 
+def generate_working_days(pk=None, monday=False, tuesday=False, wednesday=False, thursday=False, friday=False, saturday=False, sunday=False):
+    wd = models.WorkingDays()
+    wd.id=pk
+    wd.monday=monday
+    wd.tuesday=tuesday
+    wd.wednesday=wednesday
+    wd.thursday=thursday
+    wd.friday=friday
+    wd.saturday=saturday
+    wd.sunday=sunday
+    return wd
+
+def generate_older_config(pk=None, pattern=None, working_days=None):
+    oc = models.OlderConfig()
+    oc.id=pk
+    oc.pattern=pattern
+    oc.workingDays=working_days
+    return oc
+
 
 def generate_percentile(seed=1, pk=None, type=None, course=None, trimester=None):
     p = models.Percentile()
@@ -48,8 +67,6 @@ def generate_pattern(pk=None, blocks=None):
 def generate_block(pk=None, order=None, block_jump=None, sessions=None):
     if sessions is None:
         sessions = []
-    if block_jump is None:
-        block_jump = models.BlockJump()
     b = models.Block()
     b.id = pk
     b.order = order

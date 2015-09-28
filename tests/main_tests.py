@@ -4,8 +4,20 @@ import models
 from Api.Manager import DataManager
 import main
 import dateutil.parser
+import datetime
 
 import models_tests
+import mocks
+
+
+class DayWeekTest(unittest.TestCase):
+    def test_sunday(self):
+        day = dateutil.parser.parse("2015-09-27")
+        self.assertEqual(main.day_week(day), 'sunday')
+
+    def test_monday(self):
+        day = dateutil.parser.parse("2015-09-21")
+        self.assertEqual(main.day_week(day), 'monday')
 
 
 class WeekStartDateTest(unittest.TestCase):
@@ -183,9 +195,173 @@ class JumpTests(unittest.TestCase):
 
 class UpdateConfigTests(unittest.TestCase):
     def setUp(self):
+        self.last_jump_configuration = None
+        self.last_jump_condition = None
+
+        self.mock_avg_percentile = None
+        self.mock_avg_motivation = None
+
+        def mock_jump(configuration, condition):
+            self.last_jump_configuration = configuration
+            self.last_jump_condition = condition
+
+        def mock_get_average_data(older, s1, s2):
+            return self.mock_avg_percentile, self.mock_avg_motivation
+
         self.get_average_data = main.get_average_data
+        main.get_average_data = mock_get_average_data
         self.jump = main.jump
+        main.jump = mock_jump
+
+        self.bjc = models_tests.generate_block_jump_condition(level=1)
+        bjc2 = models_tests.generate_block_jump_condition(level=1)
+        self.bjd = models_tests.generate_block_jump_default(level=2)
+        bj = models_tests.generate_block_jump(conditions=[self.bjc, bjc2], defaults=[self.bjd])
+        self.configuration = models.OlderConfig()
+        self.list_sessions = [
+            models_tests.generate_model_session(),
+            models_tests.generate_model_session(),
+            models_tests.generate_model_session()
+        ]
+        self.block = models_tests.generate_block(block_jump=bj, sessions=self.list_sessions)
+        self.configuration.block = self.block
 
     def tearDown(self):
         main.get_average_data = self.get_average_data
         main.jump = self.jump
+
+    def test_next_session(self):
+        self.configuration.session = self.list_sessions[1]
+        main.update_config(self.configuration, self.list_sessions, [], [])
+        self.assertEqual(self.configuration.session, self.list_sessions[2])
+
+    def test_with_found_average(self):
+        self.last_jump_configuration = None
+        self.last_jump_condition = None
+        self.mock_avg_percentile = 0
+        self.configuration.session = self.list_sessions[2]
+        self.configuration.level = 1
+        main.update_config(self.configuration, self.list_sessions, [], [])
+        self.assertEqual(self.last_jump_configuration, self.configuration)
+        self.assertEqual(self.last_jump_condition, self.bjc)
+
+    def test_with_not_found_average(self):
+        self.last_jump_configuration = None
+        self.last_jump_condition = None
+        self.mock_avg_percentile = None
+        self.configuration.session = self.list_sessions[2]
+        self.configuration.level = 2
+        self.configuration.block = self.block
+        main.update_config(self.configuration, self.list_sessions, [], [])
+        self.assertEqual(self.last_jump_configuration, self.configuration)
+        self.assertEqual(self.last_jump_condition, self.bjd)
+
+    def test_with_not_found_anything(self):
+        self.last_jump_configuration = None
+        self.last_jump_condition = None
+        self.mock_avg_percentile = None
+        self.configuration.session = self.list_sessions[2]
+        self.configuration.level = 3
+        self.configuration.block = self.block
+        main.update_config(self.configuration, self.list_sessions, [], [])
+        self.assertEqual(self.last_jump_configuration, None)
+        self.assertEqual(self.last_jump_condition, None)
+        self.assertEqual(self.configuration.session, self.list_sessions[0])
+
+    def test_with_not_block_jump(self):
+        self.configuration.block = models_tests.generate_block(sessions=self.list_sessions)
+        self.configuration.session = self.list_sessions[2]
+        main.update_config(self.configuration, self.list_sessions, [], [])
+        self.assertEqual(self.configuration.session, self.list_sessions[0])
+
+
+class RunTests(unittest.TestCase):
+    def setUp(self):
+        self.pauta = main.pauta
+        self.update_config = main.update_config
+        self.session = models.Session
+        self.count = {
+            "pauta": 0,
+            "update_config": 0,
+            "session_get": 0,
+            "session_save": 0
+        }
+        self.list_sessions = []
+
+        def mock_pauta(configuration):
+            self.count["session_get"] += 1
+            return mocks.MockSession()
+
+        def mock_update_config(configuration, list_sessions, sessions_made, sessions_use_data):
+            self.count["update_config"] += 1
+
+        models.Session = mocks.MockSession
+        main.pauta = mock_pauta
+        main.update_config = mock_update_config
+
+    def tearDown(self):
+        main.pauta = self.pauta
+        main.update_config = self.update_config
+        models.Session = self.session
+
+
+class MainTest(unittest.TestCase):
+    def setUp(self):
+        self.older_config = models.OlderConfig
+        self.run = main.run
+
+        self.run_count = 0
+        self.run_configurations = []
+        self.run_mondais = []
+
+        def mock_run(configuration, day):
+            self.run_configurations.append(configuration)
+            self.run_mondais.append(day)
+
+        models.OlderConfig = mocks.MockOlderConfig
+        main.run = mock_run
+
+        monday = models_tests.generate_working_days(monday=True)
+        wednesday = models_tests.generate_working_days(wednesday=True)
+        thursday = models_tests.generate_working_days(thursday=True)
+        multiple_days = models_tests.generate_working_days(wednesday=True, friday=True)
+
+        mocks.MockOlderConfig.get_value = [
+            mocks.MockOlderConfig(working_days=monday),
+            mocks.MockOlderConfig(working_days=thursday),
+            mocks.MockOlderConfig(working_days=monday),
+            mocks.MockOlderConfig(working_days=wednesday),
+            mocks.MockOlderConfig(working_days=multiple_days)
+        ]
+
+    def tearDown(self):
+        models.OlderConfig = self.older_config
+        main.run = self.run
+
+    def test_sunday_and_monday(self):
+        day = dateutil.parser.parse("2015-09-27")
+
+        main.main(day)
+        self.assertEqual(len(self.run_configurations), 0)
+
+        day = dateutil.parser.parse("2015-09-21")
+        main.main(day)
+        self.assertEqual(len(self.run_configurations), 2)
+        self.assertEqual(len(self.run_mondais), 2)
+        self.assertEqual(self.run_mondais[0], dateutil.parser.parse("2015-09-21"))
+
+    def test_multiple_days(self):
+        day = dateutil.parser.parse("2015-09-23")
+
+        main.main(day)
+        self.assertEqual(len(self.run_configurations), 2)
+        self.assertEqual(self.run_mondais[0], dateutil.parser.parse("2015-09-21"))
+
+        self.run_configurations = []
+        self.run_mondais = []
+
+        day = dateutil.parser.parse("2015-09-25")
+        main.main(day)
+        self.assertEqual(len(self.run_configurations), 1)
+        self.assertEqual(len(self.run_mondais), 1)
+        self.assertEqual(self.run_mondais[0], dateutil.parser.parse("2015-09-21"))

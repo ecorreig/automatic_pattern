@@ -103,4 +103,7 @@ class BelongsTo(AbstractDataType):
 
     def set(self, object):
         self.cache = object
-        self.value = object.get_pk()
+        if object:
+            self.value = object.get_pk()
+        else:
+            self.value = None

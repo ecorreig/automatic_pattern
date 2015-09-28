@@ -27,13 +27,13 @@ def test():
 #    nou.language = models.Language.get("es")
 #    nou.save()
 
-def day_week():
+def day_week(d=datetime.date.today()):
     # retorna el dia de setmana
     weekdays = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
-    return weekdays[datetime.datetime.today().weekday()]
+    return weekdays[d.weekday()]
 
 
-def week_start_date(d=datetime.datetime.today()):
+def week_start_date(d=datetime.date.today()):
     # Tornem el dilluns d'aquesta setmana
     return d - timedelta(d.weekday())
 
@@ -126,12 +126,14 @@ def update_config(configuration, list_sessions, list_sessions_made, list_use_dat
     """
     Update the configuration with the new session to launch
     :param configuration:
-    :param list_sessions:
+    :param list_sessions: List of model sessions of this block, sorted by order.
+    :param list_sessions_made: List of sessions made by the older
+    :param list_use_data: List of sessions that was required the information to check the block jump
     :return:
     """
-    position = list_sessions.index(configuration.session)
+    position = list_sessions.index(configuration.session) + 1
     if position < len(list_sessions):
-        configuration.session = list_sessions[position + 1]
+        configuration.session = list_sessions[position]
     else:
         jump_block = configuration.block.blockJump
         if jump_block is not None:
@@ -142,12 +144,14 @@ def update_config(configuration, list_sessions, list_sessions_made, list_use_dat
                 for condition in conditions:
                     if condition.check(avg_percentile, avg_motivation):
                         jump(configuration, condition)
+                        return
 
             defaults = filter(lambda e: e.level == current_level, jump_block.defaults)
             if len(defaults) == 1:
                 jump(configuration, defaults[0])
-        else:
-            configuration.session = list_sessions[0]
+                return
+        # TODO: Apply warnings!
+        configuration.session = list_sessions[0]
 
 
 def pauta(configuration):
@@ -165,50 +169,59 @@ def pauta(configuration):
     return new_session
 
 
-def main():
-    today = day_week()  # guardem el nom del dia actual
-    llista_configurations = models.OlderConfig.get()  # Llista tots els olders disponibles
-    monday = week_start_date()
+def run(configuration, monday):
+    block = configuration.block
+    level = configuration.level
+    list_block_sessions = filter(lambda e: e.level == level,
+                                 block.sessions)  # llistat de sessions al bloc (amb atributs)
+    list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
+    list_sessions = map(lambda e: e.session, list_block_sessions)  # llistat id_sessions del bloc
+    # position=list_sessions.index(session)
 
-    models.Course.get_all()
-    models.Percentile.get_all()
+
+    sessions = models.Session.get(query="student={older}&size=20".format(older=configuration.older))
+    not_done_list = filter(lambda e: e.completed_time is None, sessions)  # sessions no fetes
+    not_done = len(not_done_list)
+    sessions_block = filter(lambda e: e.model_based in list_sessions, not_done_list)
+    not_done_pattern = len(sessions_block)
+    sessions_week = filter(lambda e: e.publish_date >= monday, sessions)
+    s_week = len(sessions_week)
+    cont = configuration.numberSessions
+
+    sessions_made = filter(lambda e: e.completed_time is not None, sessions)
+    sessions_use_data = map(lambda e: e.session, filter(lambda e: e.useData, list_block_sessions))
+
+    while (not_done_pattern < 2 * configuration.numberSessions and
+                   s_week < configuration.maxSessionWeek and
+                   not_done < 10 and cont > 0):
+        session = pauta(configuration)
+        update_config(configuration, list_sessions, sessions_made, sessions_use_data)
+        session.save()
+
+        not_done_pattern += 1
+        s_week += 1
+        not_done += 1
+        cont -= 1
+    configuration.save()
+
+
+def main(today=datetime.date.today()):
+    today_name = day_week(today)  # guardem el nom del dia actual
+    llista_configurations = models.OlderConfig.get()  # Llista tots els olders disponibles
+    monday = week_start_date(today)
 
     for configuration in llista_configurations:
         working = configuration.workingDays
-        if (getattr(working, today)):
-            block = configuration.block
-            level = configuration.level
-            list_block_sessions = filter(lambda e: e.level == level,
-                                         block.sessions)  # llistat de sessions al bloc (amb atributs)
-            list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
-            list_sessions = map(lambda e: e.session, list_block_sessions)  # llistat id_sessions del bloc
-            # position=list_sessions.index(session)
-
-
-            sessions = models.Session.get(query="student={older}&size=20".format(older=configuration.older))
-            not_done_list = filter(lambda e: e.completed_time is None, sessions)  # sessions no fetes
-            not_done = len(not_done_list)
-            sessions_block = filter(lambda e: e.model_based in list_sessions, not_done_list)
-            not_done_pattern = len(sessions_block)
-            sessions_week = filter(lambda e: e.publish_date >= str(monday), sessions)
-            s_week = len(sessions_week)
-            cont = configuration.numberSessions
-
-            sessions_made = filter(lambda e: e.completed_time is not None, sessions)
-            sessions_use_data = map(lambda e: e.session, filter(lambda e: e.useData, list_block_sessions))
-
-            while (not_done_pattern < 2 * configuration.numberSessions and
-                           s_week < configuration.maxSessionWeek and
-                           not_done < 10 and cont > 0):
-                session = pauta(configuration)
-                update_config(configuration, list_sessions, sessions_made, sessions_use_data)
-                session.save()
-
-                not_done_pattern += 1
-                s_week += 1
-                not_done += 1
-                cont -= 1
+        if getattr(working, today_name):
+            try:
+                run(configuration, monday)
+            except Exception, e:
+                print e
 
 
 if __name__ == "__main__":
+    # load cache
+    models.Course.get_all()
+    models.Percentile.get_all()
+    # Run the program
     main()
