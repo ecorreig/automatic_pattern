@@ -274,35 +274,110 @@ class UpdateConfigTests(unittest.TestCase):
         main.update_config(self.configuration, self.list_sessions, [], [])
         self.assertEqual(self.configuration.session, self.list_sessions[0])
 
+class GetCountersTests(unittest.TestCase):
+    def setUp(self):
+        self.days = map(lambda e: dateutil.parser.parse("2015/09/"+str(e)), range(21,28))
+        self.model_sessions = [
+            models_tests.generate_model_session(),
+            models_tests.generate_model_session(),
+            models_tests.generate_model_session()
+        ]
+
+    def test(self):
+        list=[
+            mocks.MockSession(self.model_sessions[0], self.days[1], self.days[2]),
+            mocks.MockSession(models_tests.generate_model_session(), self.days[0],self.days[0]),
+            mocks.MockSession(self.model_sessions[0], self.days[2],completed_time=self.days[2]),
+            mocks.MockSession(models_tests.generate_model_session(),self.days[2],completed_time=self.days[2]),
+            mocks.MockSession(self.model_sessions[1], self.days[3],completed_time=self.days[3]),
+            mocks.MockSession(models_tests.generate_model_session(), self.days[4],completed_time=None),
+            mocks.MockSession(self.model_sessions[2], self.days[5],completed_time=None),
+        ]
+        not_done, not_done_pattern, s_week = main.get_counters(list, self.model_sessions, self.days[2])
+        self.assertEqual(not_done, 2)
+        self.assertEqual(not_done_pattern, 1)
+        self.assertEqual(s_week, 3)
+
 
 class RunTests(unittest.TestCase):
     def setUp(self):
         self.pauta = main.pauta
         self.update_config = main.update_config
         self.session = models.Session
+        self.get_counters = main.get_counters
+        self.configuration_save = models.OlderConfig.save
         self.count = {
             "pauta": 0,
             "update_config": 0,
-            "session_get": 0,
-            "session_save": 0
+            "get_counters": 0,
+            "configuration_save": 0
         }
         self.list_sessions = []
+        self.get_counters_value = (0, 0, 0)
 
         def mock_pauta(configuration):
-            self.count["session_get"] += 1
+            self.count["pauta"] += 1
             return mocks.MockSession()
 
         def mock_update_config(configuration, list_sessions, sessions_made, sessions_use_data):
             self.count["update_config"] += 1
 
+        def mock_get_counters(sessions, list_sessions, monday):
+            self.count["get_counters"] += 1
+            return self.get_counters_value
+
+        def mock_configuration_save():
+            self.count["configuration_save"] += 1
+
         models.Session = mocks.MockSession
         main.pauta = mock_pauta
         main.update_config = mock_update_config
+        main.get_counters = mock_get_counters
+
+        self.configuration = models_tests.generate_older_config()
+        self.configuration.block = models_tests.generate_block(sessions=[])
+        self.configuration.older = models.Older()
+        self.configuration.older.id = 1
+        self.configuration.numberSessions = 2
+        self.configuration.maxSessionWeek = 5
+        self.configuration.save = mock_configuration_save
 
     def tearDown(self):
         main.pauta = self.pauta
         main.update_config = self.update_config
         models.Session = self.session
+        main.get_counters = self.get_counters
+        models.OlderConfig.save = self.configuration_save
+
+    def test_normal_state(self):
+        main.run(self.configuration, "monday")
+        self.assertEqual(self.count['pauta'], 2)
+        self.assertEqual(self.count['update_config'], 2)
+        self.assertEqual(self.count['get_counters'], 1)
+        self.assertEqual(self.count['configuration_save'], 1)
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&size=20')
+
+    def test_max_sessions_week(self):
+        self.get_counters_value = (0, 0, 4)
+        self.configuration.older.id = 3
+        main.run(self.configuration, "monday")
+        self.assertEqual(self.count['pauta'], 1)
+        self.assertEqual(self.count['configuration_save'], 1)
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=3&size=20')
+
+    def test_max_sessions(self):
+        self.get_counters_value = (9, 0, 0)
+        main.run(self.configuration, "monday")
+        self.assertEqual(self.count['pauta'], 1)
+        self.assertEqual(self.count['configuration_save'], 1)
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&size=20')
+
+    def test_sessions(self):
+        self.get_counters_value = (0, 3, 0)
+        main.run(self.configuration, "monday")
+        self.assertEqual(self.count['pauta'], 1)
+        self.assertEqual(self.count['configuration_save'], 1)
+        self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&size=20')
 
 
 class MainTest(unittest.TestCase):

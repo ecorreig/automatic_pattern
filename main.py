@@ -169,23 +169,29 @@ def pauta(configuration):
     return new_session
 
 
+def get_counters(sessions, list_sessions, monday):
+    not_done_list = filter(lambda e: e.completed_time is None, sessions)  # sessions no fetes
+    not_done = len(not_done_list)
+    sessions_block = filter(lambda e: e.model_based in list_sessions, not_done_list)
+    not_done_pattern = len(sessions_block)
+    sessions_week = filter(lambda e: e.publish_date >= monday,
+                           filter(lambda e: e.model_based in list_sessions,
+                                  sessions))
+    s_week = len(sessions_week)
+
+    return not_done, not_done_pattern, s_week
+
+
 def run(configuration, monday):
     block = configuration.block
     level = configuration.level
     list_block_sessions = filter(lambda e: e.level == level,
                                  block.sessions)  # llistat de sessions al bloc (amb atributs)
-    list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
+    # list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
     list_sessions = map(lambda e: e.session, list_block_sessions)  # llistat id_sessions del bloc
-    # position=list_sessions.index(session)
 
-
-    sessions = models.Session.get(query="student={older}&size=20".format(older=configuration.older))
-    not_done_list = filter(lambda e: e.completed_time is None, sessions)  # sessions no fetes
-    not_done = len(not_done_list)
-    sessions_block = filter(lambda e: e.model_based in list_sessions, not_done_list)
-    not_done_pattern = len(sessions_block)
-    sessions_week = filter(lambda e: e.publish_date >= monday, sessions)
-    s_week = len(sessions_week)
+    sessions = models.Session.get(query="student={older}&size=20".format(older=configuration.older.id))
+    not_done, not_done_pattern, s_week = get_counters(sessions, list_sessions, monday)
     cont = configuration.numberSessions
 
     sessions_made = filter(lambda e: e.completed_time is not None, sessions)

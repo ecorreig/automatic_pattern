@@ -3,13 +3,16 @@ __author__ = 'dracks'
 
 class MockSession:
     list_sessions = []
+    get_args = {}
 
-    def __init__(self, publish_date=None, completed_time=None):
+    def __init__(self, model=None, publish_date=None, completed_time=None):
+        self.model_based=model
         self.publish_date = publish_date
         self.completed_time = completed_time
 
     @classmethod
-    def get(cls):
+    def get(cls, **args):
+        cls.get_args = args
         return cls.list_sessions
 
     def save(self):

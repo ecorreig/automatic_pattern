@@ -94,6 +94,7 @@ class OlderConfig(Model):
     _name = ['olderPatternRelation', 'olderPatternRelations']
     _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions', 'maxSessionWeek', 'block', 'level', 'session',
                'warnings']
+    older = EndpointProperties.BelongsTo('older')
     pattern = EndpointProperties.BelongsTo('pattern')
     workingDays = EndpointProperties.BelongsTo('daysWork')
     session = EndpointProperties.BelongsTo('session')
