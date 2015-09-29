@@ -41,5 +41,6 @@ def insert():
 
 
 if __name__ == '__main__':
+    #DataManager.sharedManager().set_config('config-beta.json')
     DataManager.sharedManager().get_all("warning")
     insert()
