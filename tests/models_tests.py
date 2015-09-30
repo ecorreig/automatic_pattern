@@ -165,6 +165,27 @@ class OlderTests(unittest.TestCase):
 
         self.assertEqual(subject.get_course(), mock_course)
 
+class OlderConfigTests(unittest.TestCase):
+    def test_get_list_block_sessions(self):
+        older_config=models.OlderConfig()
+        current_sessions = [
+            generate_block_session(level=1),
+            generate_block_session(level=2)
+        ]
+
+        older_config.block=generate_block(sessions=current_sessions)
+        older_config.level=1
+
+        old_sessions = [
+            generate_block_session(level=3),
+            generate_block_session(level=2),
+        ]
+        older_config.lastBlock=generate_block(sessions=old_sessions)
+        older_config.lastLevel=2
+        data = older_config.get_list_block_session()
+        self.assertEqual(data, [current_sessions[0], current_sessions[1]])
+
+
 
 class BlockJumpConditionTest(unittest.TestCase):
     def setUp(self):

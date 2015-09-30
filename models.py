@@ -93,14 +93,20 @@ class Pattern(Model):
 class OlderConfig(Model):
     _name = ['olderPatternRelation', 'olderPatternRelations']
     _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions', 'maxSessionWeek', 'block', 'level', 'session',
-               'warnings']
+               'lastBlock', 'lastLevel', 'warnings']
     older = EndpointProperties.BelongsTo('student')
     pattern = EndpointProperties.BelongsTo('pattern')
     workingDays = EndpointProperties.BelongsTo('daysWork')
     session = EndpointProperties.BelongsTo('sessionModel')
     block = EndpointProperties.BelongsTo('block')
     warnings = EndpointProperties.HasMany('warning')
+    lastBlock = EndpointProperties.BelongsTo('block')
 
+    def get_list_block_session(self):
+        blocks_session = filter(lambda e: e.level == self.level, self.block.sessions)
+        if self.lastBlock:
+            blocks_session.extend(filter(lambda e: e.level == self.lastLevel, self.lastBlock.sessions))
+        return blocks_session
 
 @DataManager.endpoint
 class WorkingDays(Model):
@@ -184,6 +190,15 @@ class BlockSession(Model):
 class Warnings(Model):
     _name = ['warning', 'warnings']
     _fields = ['id', 'code', 'level', 'name']
+
+    @classmethod
+    def retrieve(cls, code):
+        list_warnings = cls._manager.retrieve_all('warning')
+        for warning in list_warnings:
+            if warning.code == code:
+                return warning
+        print "Warning not found - {code}".format(code=code)
+        return None
 
 
 @DataManager.endpoint

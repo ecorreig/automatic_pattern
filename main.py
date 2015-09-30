@@ -2,31 +2,15 @@ __author__ = 'dracks'
 
 import models
 from Api.Manager import DataManager
-from datetime import date, datetime, timedelta
-from operator import attrgetter
+from datetime import date, datetime, timedelta, time
 import sys
 import traceback
+import numpy as np
+from pytz import timezone
 
+MIN_VALID_HOUR = 7
+MAX_VALID_HOUR = 21
 
-def test():
-    es = DataManager.sharedManager().query('language', 'es')
-    print es
-    print es.name
-    print es.id
-    patterns = models.Pattern.get()
-    print (patterns[0].name)
-    len(patterns)
-    # print(patterns[0].id)
-    # print(patterns[0].language.name)
-    print(patterns[0].blocks)
-
-    # print (patterns[-1].id)
-    # print (patterns[-1].name)
-    # print (patterns[-1].language.name)
-
-
-#    nou.language = models.Language.get("es")
-#    nou.save()
 
 def day_week(d=date.today()):
     # retorna el dia de setmana
@@ -49,6 +33,35 @@ def get_trimester(completed):
         return 3
 
 
+def append_warning(configuration, code):
+    warning = models.Warnings.retrieve(code)
+    if warning:
+        configuration.warnings.append(warning)
+
+
+def get_filtered_times(session):
+    n = 1.5
+    sorted_activities = sorted(session.list_activities, key=lambda e: int(e.order))
+    last = sorted_activities[-1]
+    replaced = 0
+    words_minute = last.words_minute
+    if last.times and len(last.times) > 0:
+        list_times = map(lambda e: int(e), last.times.split(','))
+        avg = np.mean(list_times)
+        dev = np.std(list_times)
+        i = 0
+        while i < len(list_times):
+            value = list_times[i]
+            if abs(value - avg) > n * dev:
+                replaced += 1
+                list_times.remove(value)
+            else:
+                i += 1
+        words_minute = np.mean(list_times)
+
+    return replaced, words_minute
+
+
 def get_percentile(older, session):
     """
     Get the percentile for an older
@@ -69,9 +82,8 @@ def get_percentile(older, session):
     type_percentile = session.model_based.type_percentile
     for percentile in list_percentiles:
         if percentile.type == type_percentile:
-            sorted_activities = sorted(session.list_activities, key=lambda e: e.order)
-            last = sorted_activities[-1]
-            return percentile.get_value(last.words_minute)
+            _, times = get_filtered_times(session)
+            return percentile.get_value(times)
     return None
 
 
@@ -108,8 +120,10 @@ def jump(configuration, jump_config):
     :param jump_config:
     :return:
     """
+    configuration.lastBlock=configuration.block
+    configuration.lastLevel = configuration.level
     if not jump_config.repeatBlock:
-        blocks = sorted(configuration.pattern.blocks, key=lambda e: e.order)
+        blocks = sorted(configuration.pattern.blocks, key=lambda e: int(e.order))
         index = blocks.index(configuration.block) + 1
         if index < len(blocks):
             configuration.block = blocks[index]
@@ -117,7 +131,7 @@ def jump(configuration, jump_config):
             print "Next block no existent"
     configuration.level = jump_config.nextLevel
     list_sessions = filter(lambda e: e.level == configuration.level, configuration.block.sessions)
-    list_sessions = sorted(list_sessions, key=lambda e: e.order)
+    list_sessions = sorted(list_sessions, key=lambda e: int(e.order))
     configuration.session = list_sessions[0].session
     if jump_config.warning is not None:
         configuration.warnings.append(jump_config.warning)
@@ -132,8 +146,8 @@ def update_config(configuration, list_sessions, list_sessions_made, list_use_dat
     :param list_use_data: List of sessions that was required the information to check the block jump
     :return: If we jump to another level/block or we continue on the same.
     """
-    #print configuration.session, list_sessions
-    #print configuration.session.id, map(lambda e: e.id, list_sessions)
+    # print configuration.session, list_sessions
+    # print configuration.session.id, map(lambda e: e.id, list_sessions)
     position = list_sessions.index(configuration.session) + 1
     if position < len(list_sessions):
         configuration.session = list_sessions[position]
@@ -153,7 +167,8 @@ def update_config(configuration, list_sessions, list_sessions_made, list_use_dat
             if len(defaults) == 1:
                 jump(configuration, defaults[0])
                 return True
-        # TODO: Apply warnings!
+
+        append_warning(configuration, "P-1.3")
         configuration.session = list_sessions[0]
     return False
 
@@ -178,8 +193,8 @@ def get_counters(sessions, list_sessions, monday):
     not_done = len(not_done_list)
     sessions_block = filter(lambda e: e.model_based in list_sessions, not_done_list)
     not_done_pattern = len(sessions_block)
-    sessions_week = filter(lambda e: e.publish_date >= monday,
-                           filter(lambda e: e.model_based in list_sessions,
+    sessions_week = filter(lambda e: e.model_based in list_sessions,
+                           filter(lambda e: e.publish_date and e.publish_date >= monday,
                                   sessions))
     s_week = len(sessions_week)
 
@@ -187,18 +202,77 @@ def get_counters(sessions, list_sessions, monday):
 
 
 def generate_lists(configuration, sessions):
-    block = configuration.block
-    level = configuration.level
+    """
 
-    list_block_sessions = filter(lambda e: e.level == level,
-                                 block.sessions)  # llistat de sessions al bloc (amb atributs)
+    :param configuration:
+    :type configuration: OlderConfig
+    :param sessions:
+    :return:
+    """
+    list_block_sessions = configuration.get_list_block_session()
     # list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
     list_sessions = map(lambda e: e.session, list_block_sessions)  # llistat id_sessions del bloc
 
-    sessions_made = filter(lambda e: e.completed_time is not None, sessions)
+    sessions_made = filter(lambda e: e.completed_time is not None, list_sessions)
     sessions_use_data = map(lambda e: e.session, filter(lambda e: e.useData, list_block_sessions))
 
     return list_sessions, sessions_made, sessions_use_data
+
+
+def check_warnings(configuration, sessions):
+    sessions = sorted(sessions, key=lambda e: e.completed_time,reverse=True)
+    mot_begin = map(lambda e: int(e.status_begin), sessions[0:4])
+    mot_begin_end = map(lambda e: int(e.status_end) - int(e.status_begin), sessions[0:4])
+    avg_mot_begin = np.mean(mot_begin)
+    avg_mot_begin_end = np.mean(mot_begin_end)
+    begin_end_limit = -3
+    #p = 0.5
+    pc = 30
+    dif = 5
+    last_session = sessions[0]
+    europe=timezone("Europe/Madrid")
+
+    if avg_mot_begin <= 4:
+        append_warning(configuration, "MOT-1.1")
+    elif len(mot_begin) >= 2 and mot_begin[1] < 5 and mot_begin[0] < 5:
+        append_warning(configuration, "MOT-1.4")
+    elif mot_begin[0] < 5:
+        append_warning(configuration, "MOT-1.3")
+    elif avg_mot_begin <= 6:
+        append_warning(configuration, "MOT-1.2")
+    """
+    else:  # Motiv[0]>=5
+        vmax = max(mot_begin)
+        vmin = min(mot_begin)
+        if mot_begin[0] < mot_begin[1] and vmax - vmin > p:
+            append_warning(configuration, "MOT-2.1")
+    """
+
+    if avg_mot_begin_end < begin_end_limit:
+        append_warning(configuration, "MOT-3.1")
+    elif mot_begin_end[0] < begin_end_limit:
+        append_warning(configuration, "MOT-3.2")
+    elif mot_begin_end[0] < 0:
+        append_warning(configuration, "MOT-3.3")
+
+    replaced, _ = get_filtered_times(last_session)
+
+    if replaced > 2 and mot_begin_end[0] < begin_end_limit:
+        append_warning(configuration, "CL-1.1")
+    elif replaced > 2:
+        append_warning(configuration, "CL-1.2")
+    elif replaced > 0:
+        append_warning(configuration, "CL-1.3")
+
+    percentile = get_percentile(configuration.older, last_session)
+    if percentile < pc and last_session.difficulty<dif:
+        append_warning(configuration, "CL-2.1")
+
+    check_time = last_session.completed_time.astimezone(europe).time()
+    min_hour = time(MIN_VALID_HOUR, tzinfo=europe)
+    max_hour = time(MAX_VALID_HOUR, tzinfo=europe)
+    if check_time < min_hour or check_time > max_hour:
+        append_warning(configuration, "H-1.1")
 
 
 def run(configuration, monday):
@@ -208,6 +282,11 @@ def run(configuration, monday):
 
     not_done, not_done_pattern, s_week = get_counters(sessions, list_sessions, monday)
     count = int(configuration.numberSessions)
+
+    if sessions_made > 0:
+        check_warnings(configuration, sessions_made)
+    else:
+        append_warning(configuration, "P-1.3")
 
     if configuration.maxSessionWeek is not None:
         count = min(int(configuration.maxSessionWeek) - s_week, configuration.numberSessions)
@@ -221,10 +300,11 @@ def run(configuration, monday):
         session.save()
 
         not_done_pattern += 1
-        s_week += 1
         not_done += 1
         count -= 1
-    configuration.save()
+
+    if not_done == 10:
+        append_warning(configuration, "P-1.4")
 
 
 def main(today=date.today()):
@@ -236,17 +316,21 @@ def main(today=date.today()):
     for configuration in llista_configurations:
         working = configuration.workingDays
         if getattr(working, today_name):
+            configuration.warnings = []
             try:
                 run(configuration, monday)
             except Exception, e:
+                append_warning(configuration, "P-1.1")
                 print e
                 type_, value_, traceback_ = sys.exc_info()
                 print "".join(traceback.format_exception(type_, value_, traceback_))
+            configuration.save()
 
 
 if __name__ == "__main__":
     # load cache
     models.Course.get_all()
     models.Percentile.get()
+    models.Warnings.get()
     # Run the program
     main()
