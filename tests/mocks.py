@@ -29,6 +29,7 @@ class MockOlderConfig:
 
     save_count = 0
 
+
     def __init__(self, working_days=None, warnings=None):
         if warnings is None:
             warnings = []

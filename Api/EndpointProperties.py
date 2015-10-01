@@ -77,11 +77,11 @@ class BooleanProperty(Property):
 
     def instantiate(self, value):
         b = False
-        if isinstance(value, str):
+        if isinstance(value, str) or isinstance(value, unicode):
             if value.lower() == 'true':
                 b = True
         elif isinstance(value, bool):
-            b=value
+            b = value
         return BooleanProperty(b)
 
     def serialize(self):
@@ -110,7 +110,14 @@ class HasMany(AbstractDataType):
 
     def set(self, list_objects):
         self.cache = list_objects
-        self.value = map(lambda e: e.get_pk(), list_objects)
+        self.value = map(lambda e: e.get_pk(), self.cache)
+
+    def serialize(self):
+        if self.cache is not None:
+            self.value = map(lambda e: e.get_pk(), self.cache)
+            return self.value
+        else:
+            return self.value
 
 
 class BelongsTo(AbstractDataType):

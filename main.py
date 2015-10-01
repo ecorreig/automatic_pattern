@@ -1,3 +1,5 @@
+from dateutil import tz
+
 __author__ = 'dracks'
 
 import models
@@ -39,9 +41,16 @@ def append_warning(configuration, code):
         configuration.warnings.append(warning)
 
 
+def get_order(element):
+    if element.order:
+        return int(element.order)
+    else:
+        return 0
+
+
 def get_filtered_times(session):
     n = 1.5
-    sorted_activities = sorted(session.list_activities, key=lambda e: int(e.order))
+    sorted_activities = sorted(session.list_activities, key=get_order)
     last = sorted_activities[-1]
     replaced = 0
     words_minute = last.words_minute
@@ -120,7 +129,7 @@ def jump(configuration, jump_config):
     :param jump_config:
     :return:
     """
-    configuration.lastBlock=configuration.block
+    configuration.lastBlock = configuration.block
     configuration.lastLevel = configuration.level
     if not jump_config.repeatBlock:
         blocks = sorted(configuration.pattern.blocks, key=lambda e: int(e.order))
@@ -168,7 +177,7 @@ def update_config(configuration, list_sessions, list_sessions_made, list_use_dat
                 jump(configuration, defaults[0])
                 return True
 
-        append_warning(configuration, "P-1.3")
+        append_warning(configuration, "P-1.2")
         configuration.session = list_sessions[0]
     return False
 
@@ -207,72 +216,85 @@ def generate_lists(configuration, sessions):
     :param configuration:
     :type configuration: OlderConfig
     :param sessions:
-    :return:
+    :return: (List of sessions in current block and old block, list of sessions made with current models, list of sessions to use data)
     """
     list_block_sessions = configuration.get_list_block_session()
     # list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
     list_sessions = map(lambda e: e.session, list_block_sessions)  # llistat id_sessions del bloc
 
-    sessions_made = filter(lambda e: e.completed_time is not None, list_sessions)
+    sessions_made = filter(lambda e: e.completed_time is not None,
+                           filter(lambda e: e.model_based in list_sessions, sessions))
     sessions_use_data = map(lambda e: e.session, filter(lambda e: e.useData, list_block_sessions))
 
     return list_sessions, sessions_made, sessions_use_data
 
 
-def check_warnings(configuration, sessions):
-    sessions = sorted(sessions, key=lambda e: e.completed_time,reverse=True)
-    mot_begin = map(lambda e: int(e.status_begin), sessions[0:4])
-    mot_begin_end = map(lambda e: int(e.status_end) - int(e.status_begin), sessions[0:4])
-    avg_mot_begin = np.mean(mot_begin)
-    avg_mot_begin_end = np.mean(mot_begin_end)
+def check_warnings(configuration, all_sessions, sessions_made):
     begin_end_limit = -3
-    #p = 0.5
+    # p = 0.5
     pc = 30
     dif = 5
-    last_session = sessions[0]
-    europe=timezone("Europe/Madrid")
+    europe = timezone("Europe/Madrid")
 
-    if avg_mot_begin <= 4:
-        append_warning(configuration, "MOT-1.1")
-    elif len(mot_begin) >= 2 and mot_begin[1] < 5 and mot_begin[0] < 5:
-        append_warning(configuration, "MOT-1.4")
-    elif mot_begin[0] < 5:
-        append_warning(configuration, "MOT-1.3")
-    elif avg_mot_begin <= 6:
-        append_warning(configuration, "MOT-1.2")
-    """
-    else:  # Motiv[0]>=5
-        vmax = max(mot_begin)
-        vmin = min(mot_begin)
-        if mot_begin[0] < mot_begin[1] and vmax - vmin > p:
-            append_warning(configuration, "MOT-2.1")
-    """
+    if len(sessions_made) > 0:
+        sessions_made = sorted(sessions_made, key=lambda e: e.completed_time, reverse=True)
+        mot_begin = map(lambda e: int(e.status_begin), sessions_made[0:4])
+        mot_begin_end = map(lambda e: int(e.status_end) - int(e.status_begin), sessions_made[0:4])
+        avg_mot_begin = np.mean(mot_begin)
+        avg_mot_begin_end = np.mean(mot_begin_end)
+        last_session = sessions_made[0]
 
-    if avg_mot_begin_end < begin_end_limit:
-        append_warning(configuration, "MOT-3.1")
-    elif mot_begin_end[0] < begin_end_limit:
-        append_warning(configuration, "MOT-3.2")
-    elif mot_begin_end[0] < 0:
-        append_warning(configuration, "MOT-3.3")
+        all_sessions = sorted(all_sessions, key=lambda e: e.publish_date, reverse=True)
+        if len(all_sessions) >= configuration.numberSessions:
+            last_sessions = all_sessions[:configuration.numberSessions]
+            not_done_sessions = filter(lambda e: e.completed_time is None, last_sessions)
+            if len(not_done_sessions)==configuration.numberSessions:
+                append_warning(configuration, "S-1.1")
 
-    replaced, _ = get_filtered_times(last_session)
+        if avg_mot_begin <= 4:
+            append_warning(configuration, "MOT-1.1")
+        elif len(mot_begin) >= 2 and mot_begin[1] < 5 and mot_begin[0] < 5:
+            append_warning(configuration, "MOT-1.4")
+        elif mot_begin[0] < 5:
+            append_warning(configuration, "MOT-1.3")
+        elif avg_mot_begin <= 6:
+            append_warning(configuration, "MOT-1.2")
+        """
+        else:  # Motiv[0]>=5
+            vmax = max(mot_begin)
+            vmin = min(mot_begin)
+            if mot_begin[0] < mot_begin[1] and vmax - vmin > p:
+                append_warning(configuration, "MOT-2.1")
+        """
 
-    if replaced > 2 and mot_begin_end[0] < begin_end_limit:
-        append_warning(configuration, "CL-1.1")
-    elif replaced > 2:
-        append_warning(configuration, "CL-1.2")
-    elif replaced > 0:
-        append_warning(configuration, "CL-1.3")
+        if avg_mot_begin_end < begin_end_limit:
+            append_warning(configuration, "MOT-3.1")
+        elif mot_begin_end[0] < begin_end_limit:
+            append_warning(configuration, "MOT-3.2")
+        elif mot_begin_end[0] < 0:
+            append_warning(configuration, "MOT-3.3")
 
-    percentile = get_percentile(configuration.older, last_session)
-    if percentile < pc and last_session.difficulty<dif:
-        append_warning(configuration, "CL-2.1")
+        replaced, _ = get_filtered_times(last_session)
 
-    check_time = last_session.completed_time.astimezone(europe).time()
-    min_hour = time(MIN_VALID_HOUR, tzinfo=europe)
-    max_hour = time(MAX_VALID_HOUR, tzinfo=europe)
-    if check_time < min_hour or check_time > max_hour:
-        append_warning(configuration, "H-1.1")
+        if replaced > 2 and mot_begin_end[0] < begin_end_limit:
+            append_warning(configuration, "CL-1.1")
+        elif replaced > 2:
+            append_warning(configuration, "CL-1.2")
+        elif replaced > 0:
+            append_warning(configuration, "CL-1.3")
+
+        percentile = get_percentile(configuration.older, last_session)
+        if percentile < pc and last_session.difficulty < dif:
+            append_warning(configuration, "CL-2.1")
+
+        check_time = last_session.completed_time.astimezone(europe).time()
+        min_hour = time(MIN_VALID_HOUR, tzinfo=europe)
+        max_hour = time(MAX_VALID_HOUR, tzinfo=europe)
+        if check_time < min_hour or check_time > max_hour:
+            append_warning(configuration, "H-1.1")
+
+    else:
+        append_warning(configuration, "P-1.3")
 
 
 def run(configuration, monday):
@@ -283,10 +305,7 @@ def run(configuration, monday):
     not_done, not_done_pattern, s_week = get_counters(sessions, list_sessions, monday)
     count = int(configuration.numberSessions)
 
-    if sessions_made > 0:
-        check_warnings(configuration, sessions_made)
-    else:
-        append_warning(configuration, "P-1.3")
+    check_warnings(configuration, filter(lambda e: e.model_based in list_sessions, sessions), sessions_made)
 
     if configuration.maxSessionWeek is not None:
         count = min(int(configuration.maxSessionWeek) - s_week, configuration.numberSessions)

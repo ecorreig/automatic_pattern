@@ -183,7 +183,7 @@ class OlderConfigTests(unittest.TestCase):
         older_config.lastBlock=generate_block(sessions=old_sessions)
         older_config.lastLevel=2
         data = older_config.get_list_block_session()
-        self.assertEqual(data, [current_sessions[0], current_sessions[1]])
+        self.assertEqual(data, [current_sessions[0], old_sessions[1]])
 
 
 

@@ -344,6 +344,47 @@ class GetCountersTests(unittest.TestCase):
         self.assertEqual(s_week, 3)
 
 
+class GenerateLists(unittest.TestCase):
+    def setUp(self):
+        self.older_config_get_list_block_session = mocks.MockOlderConfig
+        self.older_config_get_list_block_session_value = []
+
+        this = self
+
+        def mock_get_list_block_session(self):
+            return this.older_config_get_list_block_session_value
+
+        mocks.MockOlderConfig.get_list_block_session = mock_get_list_block_session
+
+    def tearDown(self):
+        mocks.MockOlderConfig = self.older_config_get_list_block_session
+
+    def test_global(self):
+        models_session = [
+            models_tests.generate_model_session(),
+            models_tests.generate_model_session(),
+            models_tests.generate_model_session()
+        ]
+        self.older_config_get_list_block_session_value = [
+            models_tests.generate_block_session(session=models_session[0], useData=False),
+            models_tests.generate_block_session(session=models_session[1], useData=False),
+            models_tests.generate_block_session(session=models_session[2], useData=True)
+        ]
+        configuration = mocks.MockOlderConfig()
+        sessions = [
+            mocks.MockSession(model=models_session[0], completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[1], completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_tests.generate_model_session(),
+                              completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[2], completed_time=None),
+            mocks.MockSession(model=models_tests.generate_model_session(), completed_time=None),
+        ]
+        list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration, sessions)
+        self.assertEqual(list_sessions, models_session)
+        self.assertEqual(sessions_made, [sessions[0], sessions[1]])
+        self.assertEqual(sessions_use_data, [models_session[2]])
+
+
 class CheckWarningsTests(unittest.TestCase):
     def setUp(self):
         mocks.MockWarning.load()
@@ -383,6 +424,7 @@ class CheckWarningsTests(unittest.TestCase):
                               completed_time=dateutil.parser.parse("2015-09-25 20:00+02:00")),
         ]
         self.configuration = mocks.MockOlderConfig()
+        self.configuration.numberSessions=2
 
     def tearDown(self):
         main.append_warning = self.append_warning
@@ -394,21 +436,21 @@ class CheckWarningsTests(unittest.TestCase):
         self.get_percentile_value = 10
         self.sessions[-1].status_begin = 0
         self.sessions[-2].status_begin = 0
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-1.1")
 
         self.sessions[-1].status_begin = 4
         self.sessions[-2].status_begin = 4
         self.append_warning_code_list = []
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-1.4")
 
         self.sessions[-1].status_begin = 4
         self.sessions[-2].status_begin = 5
         self.append_warning_code_list = []
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-1.3")
 
@@ -418,20 +460,20 @@ class CheckWarningsTests(unittest.TestCase):
         self.sessions[-4].status_begin = 6
         self.append_warning_code_list = []
 
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-1.2")
 
     def test_mot_difference(self):
         # self.get_filtered_times_value = (0, 0)
         self.sessions[-1].status_end = self.sessions[-1].status_begin - 1
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-3.3")
 
         self.append_warning_code_list = []
         self.sessions[-1].status_end = self.sessions[-1].status_begin - 4
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-3.2")
 
@@ -439,46 +481,71 @@ class CheckWarningsTests(unittest.TestCase):
         self.sessions[-1].status_end = self.sessions[-1].status_begin - 4
         self.sessions[-2].status_end = self.sessions[-2].status_begin - 4
         self.sessions[-3].status_end = self.sessions[-3].status_begin - 5
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-3.1")
 
     def test_filtered_times(self):
         self.get_filtered_times_value = (1, 0)
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "CL-1.3")
 
         self.append_warning_code_list = []
         self.get_filtered_times_value = (3, 0)
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "CL-1.2")
 
         self.append_warning_code_list = []
         self.get_filtered_times_value = (3, 0)
         self.sessions[-1].status_end = self.sessions[-1].status_begin - 4
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 2)
         self.assertEqual(self.append_warning_code_list[1], "CL-1.1")
 
     def test_percentile(self):
         self.get_percentile_value = 3
         self.sessions[-1].difficulty = 3
-        main.check_warnings(self.configuration, self.sessions)
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "CL-2.1")
 
     def test_time(self):
-        self.sessions[-1].completed_time = dateutil.parser.parse("2015-09-21 21:00:01+02:00")
-        main.check_warnings(self.configuration, self.sessions)
+        self.sessions[-1].completed_time = dateutil.parser.parse("2015-09-30 20:59:59+02:00")
+        main.check_warnings(self.configuration, [], self.sessions)
+        self.assertEqual(len(self.append_warning_code_list), 0)
+
+        self.sessions[-1].completed_time = dateutil.parser.parse("2015-09-30 21:00:01+02:00")
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "H-1.1")
 
-        self.sessions[-1].completed_time = dateutil.parser.parse("2015-09-21 06:59:59+02:00")
-        main.check_warnings(self.configuration, self.sessions)
+        self.append_warning_code_list = []
+        self.sessions[-1].completed_time = dateutil.parser.parse("2015-09-30 06:59:59+02:00")
+        main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "H-1.1")
+
+        self.append_warning_code_list = []
+        self.sessions[-1].completed_time = dateutil.parser.parse("2015-09-30 07:00:00+02:00")
+        main.check_warnings(self.configuration, [], self.sessions)
+        self.assertEqual(len(self.append_warning_code_list), 0)
+
+    def test_not_done(self):
+        sessions = []
+        for session in self.sessions:
+            session.publish_date = dateutil.parser.parse("2015-09-21")
+            sessions.append(session)
+
+        sessions.append(mocks.MockSession(publish_date=dateutil.parser.parse("2015-09-22")))
+        main.check_warnings(self.configuration, sessions, self.sessions)
+        self.assertEqual(len(self.append_warning_code_list), 0)
+
+        sessions.append(mocks.MockSession(publish_date=dateutil.parser.parse("2015-09-22")))
+        main.check_warnings(self.configuration, sessions, self.sessions)
+        self.assertEqual(len(self.append_warning_code_list), 1)
+        self.assertEqual(self.append_warning_code_list[0], "S-1.1")
 
 
 class RunTests(unittest.TestCase):
@@ -490,6 +557,7 @@ class RunTests(unittest.TestCase):
         self.configuration_save = models.OlderConfig.save
         self.check_warnings = main.check_warnings
         self.last_check_warnings_sessions = None
+        self.last_check_warnings_all_sessions = None
         self.count = {
             "pauta": 0,
             "update_config": 0,
@@ -509,8 +577,9 @@ class RunTests(unittest.TestCase):
             self.count["get_counters"] += 1
             return self.get_counters_value
 
-        def mock_check_warnings(configuration, sessions):
+        def mock_check_warnings(configuration, all_sessions, sessions):
             self.last_check_warnings_sessions = sessions
+            self.last_check_warnings_all_sessions = all_sessions
 
         models.Session = mocks.MockSession
         main.pauta = mock_pauta

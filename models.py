@@ -112,6 +112,13 @@ class OlderConfig(Model):
 class WorkingDays(Model):
     _name = ['daysWork', 'daysWorks']
     _fields = ['id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    monday = EndpointProperties.BooleanProperty()
+    tuesday = EndpointProperties.BooleanProperty()
+    wednesday = EndpointProperties.BooleanProperty()
+    thursday = EndpointProperties.BooleanProperty()
+    friday = EndpointProperties.BooleanProperty()
+    saturday = EndpointProperties.BooleanProperty()
+    sunday = EndpointProperties.BooleanProperty()
 
 
 @DataManager.endpoint
@@ -135,7 +142,7 @@ class Session(Model):
 @DataManager.endpoint
 class Activity(Model):
     _name = ['activity', 'activities']
-    _fields = ['id', 'orden', 'times', 'words_minute']
+    _fields = ['id', 'order', 'times', 'words_minute']
 
 
 @DataManager.endpoint
