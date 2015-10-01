@@ -7,7 +7,8 @@ from Api.Manager import DataManager
 from datetime import date, datetime, timedelta, time
 import sys
 import traceback
-import numpy as np
+#import numpy as np
+import mock_numpy as np
 from pytz import timezone
 
 MIN_VALID_HOUR = 7
