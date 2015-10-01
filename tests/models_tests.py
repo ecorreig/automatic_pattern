@@ -206,3 +206,12 @@ class BlockJumpConditionTest(unittest.TestCase):
         self.assertFalse(subject.check(self.min_percentile, 0))
         self.assertFalse(subject.check(self.max_percentile, 0))
         self.assertTrue(subject.check(self.med_percentile, 0))
+
+    def test_margins(self):
+        subject = models.BlockJumpCondition()
+        subject.minPercentile = 30
+        subject.maxPercentile = 60
+        self.assertFalse(subject.check(subject.minPercentile-1, 0))
+        self.assertTrue(subject.check(subject.minPercentile, 0))
+        self.assertTrue(subject.check(subject.maxPercentile-1, 0))
+        self.assertFalse(subject.check(subject.maxPercentile, 0))

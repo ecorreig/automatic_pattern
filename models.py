@@ -172,7 +172,7 @@ class BlockJumpCondition(Model):
     def check(self, percentile, motivation):
         if self.minPercentile is not None and percentile < self.minPercentile:
             return False
-        if self.maxPercentile is not None and percentile > self.maxPercentile:
+        if self.maxPercentile is not None and percentile >= self.maxPercentile:
             return False
         # TODO Check the motivation
         return True
