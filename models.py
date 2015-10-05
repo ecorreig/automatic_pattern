@@ -168,6 +168,7 @@ class BlockJumpCondition(Model):
                'nextLevel', 'warning']
 
     repeatBlock = EndpointProperties.BooleanProperty()
+    warning = EndpointProperties.BelongsTo('warning')
 
     def check(self, percentile, motivation):
         if self.minPercentile is not None and percentile < self.minPercentile:
@@ -184,6 +185,7 @@ class BlockJumpDefault(Model):
     _fields = ['id', 'block_jump', 'level', 'repeatBlock', 'nextLevel', 'warning']
 
     repeatBlock = EndpointProperties.BooleanProperty()
+    warning = EndpointProperties.BelongsTo('warning')
 
 
 @DataManager.endpoint
