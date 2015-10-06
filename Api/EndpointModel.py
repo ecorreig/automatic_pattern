@@ -17,8 +17,8 @@ class Model(object):
         self.__data = {}
 
         for field in self._fields:
-            value=data.get(field, None)
-            #print field, value
+            value = data.get(field, None)
+            # print field, value
             if hasattr(self, field):
                 attr = getattr(self, field)
                 self.__data[field] = attr.instantiate(value)
@@ -44,10 +44,9 @@ class Model(object):
             if curr:
                 curr.set(value)
             else:
-                self.__data[key]=curr
+                self.__data[key] = curr
         else:
             object.__setattr__(self, key, value)
-
 
     @classmethod
     def get(cls, request=None, query=None):
@@ -69,7 +68,7 @@ class Model(object):
 
     def save(self):
         serialized = {}
-        _data=self.__data
+        _data = self.__data
         for field in self._fields:
             v = _data.get(field, None)
             if v:
@@ -87,7 +86,7 @@ class Model(object):
         try:
             newdata = json.loads(response.response_body)
             single = newdata.get(self._name[0], None)
-            assert single, "Should return a json with an object of type single. Response:"+response.response_body
+            assert single, "Should return a json with an object of type single. Response:" + response.response_body
             for field in self._fields:
                 attribute = _data.get(field, None)
                 attribute._set(single.get(field, None))

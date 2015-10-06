@@ -7,7 +7,7 @@ from Api.Manager import DataManager
 from datetime import date, datetime, timedelta, time
 import sys
 import traceback
-#import numpy as np
+# import numpy as np
 import mock_numpy as np
 from pytz import timezone
 
@@ -249,7 +249,7 @@ def check_warnings(configuration, all_sessions, sessions_made):
         if len(all_sessions) >= configuration.numberSessions:
             last_sessions = all_sessions[:configuration.numberSessions]
             not_done_sessions = filter(lambda e: e.completed_time is None, last_sessions)
-            if len(not_done_sessions)==configuration.numberSessions:
+            if len(not_done_sessions) == configuration.numberSessions:
                 append_warning(configuration, "S-1.1")
 
         if avg_mot_begin <= 4:
@@ -299,6 +299,7 @@ def check_warnings(configuration, all_sessions, sessions_made):
 
 
 def run(configuration, monday):
+    history = models.PatternHistory()
     sessions = models.Session.get(query="student={older}&count=20".format(older=configuration.older.id))
 
     list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
@@ -311,6 +312,8 @@ def run(configuration, monday):
     if configuration.maxSessionWeek is not None:
         count = min(int(configuration.maxSessionWeek) - s_week, configuration.numberSessions)
 
+    history.sessions = []
+
     while (not_done_pattern < 2 * configuration.numberSessions and
                    not_done < 10 and count > 0):
         session = pauta(configuration)
@@ -319,12 +322,22 @@ def run(configuration, monday):
             list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
         session.save()
 
+        history.sessions.append(session)
+
         not_done_pattern += 1
         not_done += 1
         count -= 1
 
     if not_done == 10:
         append_warning(configuration, "P-1.4")
+
+    history.older = configuration.older
+    history.pattern = configuration.pattern
+    history.day = datetime.today()
+    history.block = configuration.block
+    history.level = configuration.level
+    history.warnings = configuration.warnings
+    history.save()
 
 
 def main(today=date.today()):

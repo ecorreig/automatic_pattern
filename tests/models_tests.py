@@ -5,23 +5,26 @@ import models
 import dateutil.parser
 from Api.Manager import DataManager
 
-def generate_working_days(pk=None, monday=False, tuesday=False, wednesday=False, thursday=False, friday=False, saturday=False, sunday=False):
+
+def generate_working_days(pk=None, monday=False, tuesday=False, wednesday=False, thursday=False, friday=False,
+                          saturday=False, sunday=False):
     wd = models.WorkingDays()
-    wd.id=pk
-    wd.monday=monday
-    wd.tuesday=tuesday
-    wd.wednesday=wednesday
-    wd.thursday=thursday
-    wd.friday=friday
-    wd.saturday=saturday
-    wd.sunday=sunday
+    wd.id = pk
+    wd.monday = monday
+    wd.tuesday = tuesday
+    wd.wednesday = wednesday
+    wd.thursday = thursday
+    wd.friday = friday
+    wd.saturday = saturday
+    wd.sunday = sunday
     return wd
+
 
 def generate_older_config(pk=None, pattern=None, working_days=None):
     oc = models.OlderConfig()
-    oc.id=pk
-    oc.pattern=pattern
-    oc.workingDays=working_days
+    oc.id = pk
+    oc.pattern = pattern
+    oc.workingDays = working_days
     return oc
 
 
@@ -74,13 +77,14 @@ def generate_block(pk=None, order=None, block_jump=None, sessions=None):
     b.sessions = sessions
     return b
 
+
 def generate_block_session(pk=None, level=None, order=None, session=None, useData=None):
-    bs= models.BlockSession()
-    bs.id=pk
-    bs.order=order
-    bs.level=level
-    bs.session=session
-    bs.useData=useData
+    bs = models.BlockSession()
+    bs.id = pk
+    bs.order = order
+    bs.level = level
+    bs.session = session
+    bs.useData = useData
     return bs
 
 
@@ -101,7 +105,7 @@ def generate_block_jump_condition(pk=None, level=None, min=None, max=None, mot=N
                                   warning=None):
     bjc = models.BlockJumpCondition()
     bjc.id = pk
-    bjc.level=level
+    bjc.level = level
     bjc.minPercentile = min
     bjc.maxPercentile = max
     bjc.motivation = mot
@@ -109,6 +113,7 @@ def generate_block_jump_condition(pk=None, level=None, min=None, max=None, mot=N
     bjc.nextLevel = nextLevel
     bjc.warning = warning
     return bjc
+
 
 def generate_block_jump_default(pk=None, level=None, repeatBlock=None, nextLevel=None, warning=None):
     bjd = models.BlockJumpDefault()
@@ -118,6 +123,7 @@ def generate_block_jump_default(pk=None, level=None, repeatBlock=None, nextLevel
     bjd.nextLevel = nextLevel
     bjd.warning = warning
     return bjd
+
 
 class PercentilesTest(unittest.TestCase):
     def setUp(self):
@@ -165,26 +171,26 @@ class OlderTests(unittest.TestCase):
 
         self.assertEqual(subject.get_course(), mock_course)
 
+
 class OlderConfigTests(unittest.TestCase):
     def test_get_list_block_sessions(self):
-        older_config=models.OlderConfig()
+        older_config = models.OlderConfig()
         current_sessions = [
             generate_block_session(level=1),
             generate_block_session(level=2)
         ]
 
-        older_config.block=generate_block(sessions=current_sessions)
-        older_config.level=1
+        older_config.block = generate_block(sessions=current_sessions)
+        older_config.level = 1
 
         old_sessions = [
             generate_block_session(level=3),
             generate_block_session(level=2),
         ]
-        older_config.lastBlock=generate_block(sessions=old_sessions)
-        older_config.lastLevel=2
+        older_config.lastBlock = generate_block(sessions=old_sessions)
+        older_config.lastLevel = 2
         data = older_config.get_list_block_session()
         self.assertEqual(data, [current_sessions[0], old_sessions[1]])
-
 
 
 class BlockJumpConditionTest(unittest.TestCase):
@@ -211,7 +217,7 @@ class BlockJumpConditionTest(unittest.TestCase):
         subject = models.BlockJumpCondition()
         subject.minPercentile = 30
         subject.maxPercentile = 60
-        self.assertFalse(subject.check(subject.minPercentile-1, 0))
+        self.assertFalse(subject.check(subject.minPercentile - 1, 0))
         self.assertTrue(subject.check(subject.minPercentile, 0))
-        self.assertTrue(subject.check(subject.maxPercentile-1, 0))
+        self.assertTrue(subject.check(subject.maxPercentile - 1, 0))
         self.assertFalse(subject.check(subject.maxPercentile, 0))

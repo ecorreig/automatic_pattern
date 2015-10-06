@@ -7,6 +7,12 @@ from datetime import datetime
 
 
 @DataManager.endpoint
+class Language(Model):
+    _name = ['language', 'languages']
+    _fields = ['id', 'name']
+
+
+@DataManager.endpoint
 class Older(Model):
     _name = ['student', 'students']
     _fields = ['id', 'birthday', 'group', 'course_difference']
@@ -107,6 +113,7 @@ class OlderConfig(Model):
         if self.lastBlock:
             blocks_session.extend(filter(lambda e: e.level == self.lastLevel, self.lastBlock.sessions))
         return blocks_session
+
 
 @DataManager.endpoint
 class WorkingDays(Model):
@@ -211,6 +218,13 @@ class Warnings(Model):
 
 
 @DataManager.endpoint
-class Language(Model):
-    _name = ['language', 'languages']
-    _fields = ['id', 'name']
+class PatternHistory(Model):
+    _name = ['patternHistory', 'patternHistories']
+    _fields = ["id", "older", "pattern", "day", "block", "level", "description", 'sessions', 'warnings']
+
+    older = EndpointProperties.BelongsTo('student')
+    pattern = EndpointProperties.BelongsTo('pattern')
+    day = EndpointProperties.DateProperty()
+    block = EndpointProperties.BelongsTo('block')
+    sessions = EndpointProperties.HasMany('session')
+    warnings = EndpointProperties.HasMany('warning')

@@ -2,11 +2,13 @@ __author__ = 'dracks'
 
 import create_warnings
 
+
 class MockSession:
     list_sessions = []
     get_args = {}
 
-    def __init__(self, model=None, status_begin=None, status_end=None, difficulty=None, publish_date=None, completed_time=None):
+    def __init__(self, model=None, status_begin=None, status_end=None, difficulty=None, publish_date=None,
+                 completed_time=None):
         self.model_based = model
         self.publish_date = publish_date
         self.completed_time = completed_time
@@ -29,11 +31,11 @@ class MockOlderConfig:
 
     save_count = 0
 
-
     def __init__(self, working_days=None, warnings=None):
         if warnings is None:
             warnings = []
         self.workingDays = working_days
+        self.pattern = None
         self.level = None
         self.warnings = warnings
         self.older = None
@@ -61,11 +63,12 @@ class MockWarning:
     code_list = []
 
     def __init__(self, code=None):
-        self.code=code
+        self.code = code
 
     @classmethod
     def load(cls):
-        old_create=create_warnings.create
+        old_create = create_warnings.create
+
         def mock_create(code, level, label_ca, label_es):
             cls.code_list.append(code)
 
@@ -80,3 +83,13 @@ class MockWarning:
             return cls.retrieve_value
         else:
             return MockWarning(code)
+
+
+class MockPatternHistory:
+    list_mocks = []
+
+    def __init__(self):
+        pass
+
+    def save(self):
+        MockPatternHistory.list_mocks.append(self)

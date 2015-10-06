@@ -424,7 +424,7 @@ class CheckWarningsTests(unittest.TestCase):
                               completed_time=dateutil.parser.parse("2015-09-25 20:00+02:00")),
         ]
         self.configuration = mocks.MockOlderConfig()
-        self.configuration.numberSessions=2
+        self.configuration.numberSessions = 2
 
     def tearDown(self):
         main.append_warning = self.append_warning
@@ -553,6 +553,7 @@ class RunTests(unittest.TestCase):
         self.pauta = main.pauta
         self.update_config = main.update_config
         self.session = models.Session
+        self.pattern_history = models.PatternHistory
         self.get_counters = main.get_counters
         self.configuration_save = models.OlderConfig.save
         self.check_warnings = main.check_warnings
@@ -582,6 +583,7 @@ class RunTests(unittest.TestCase):
             self.last_check_warnings_all_sessions = all_sessions
 
         models.Session = mocks.MockSession
+        models.PatternHistory = mocks.MockPatternHistory
         main.pauta = mock_pauta
         main.update_config = mock_update_config
         main.get_counters = mock_get_counters
@@ -601,6 +603,7 @@ class RunTests(unittest.TestCase):
         main.get_counters = self.get_counters
         models.OlderConfig.save = self.configuration_save
         main.check_warnings = self.check_warnings
+        models.PatternHistory = self.pattern_history
 
     def test_normal_state(self):
         main.run(self.configuration, "monday")
@@ -635,6 +638,24 @@ class RunTests(unittest.TestCase):
         self.assertEqual(self.count['pauta'], 2)
         self.assertEqual(self.count['update_config'], 2)
         self.assertEqual(self.count['get_counters'], 1)
+
+    def test_history(self):
+        self.get_counters_value = (0, 0, 0)
+        mocks.MockPatternHistory.list_mocks = []
+        self.configuration.pattern = models_tests.generate_pattern()
+        self.configuration.block = models_tests.generate_block()
+        self.configuration.level = 2
+        self.configuration.older = models.Older()
+        self.configuration.warnings = [mocks.MockWarning(), mocks.MockWarning()]
+        main.run(self.configuration, "monday")
+        self.assertEqual(len(mocks.MockPatternHistory.list_mocks), 1)
+        historic = mocks.MockPatternHistory.list_mocks[0]
+        self.assertEqual(self.configuration.pattern, historic.pattern)
+        self.assertEqual(self.configuration.block, historic.block)
+        self.assertEqual(self.configuration.level, historic.level)
+        self.assertEqual(self.configuration.older, historic.older)
+        self.assertEqual(self.configuration.warnings, historic.warnings)
+        self.assertEqual(len(historic.sessions), 2)
 
 
 class MainTest(unittest.TestCase):
