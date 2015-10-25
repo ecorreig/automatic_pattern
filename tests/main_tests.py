@@ -35,7 +35,7 @@ class WeekStartDateTests(unittest.TestCase):
 class GetFilteredTimesTests(unittest.TestCase):
     def test_server_response_copy(self):
         activity = models.Activity()
-        activity.order = "100"
+        activity.sort = "100"
         activity.times = "125,167,140,140,128,128,141,128,128,143,127,129,129,129,142,116,127,269"
         session = models_tests.generate_session(activities=[activity])
         deleted, words_minute = main.get_filtered_times(session)
@@ -44,10 +44,10 @@ class GetFilteredTimesTests(unittest.TestCase):
 
     def test_activities_sort(self):
         a = models.Activity()
-        a.order = "20"
+        a.sort = "20"
         a.times = "1,2,3,2,1,2,3"
         a2 = models.Activity()
-        a2.order = "100"
+        a2.sort = "100"
         a2.times = "1,1,1,1,2,2,2,2,8,10"
         deleted, words_minute = main.get_filtered_times(models_tests.generate_session(activities=[a, a2]))
         self.assertEqual(deleted, 2)
@@ -98,10 +98,10 @@ class GetPercentileTest(unittest.TestCase):
         self.percentiles = list_percentiles
 
         activity1 = models.Activity()
-        activity1.order = 10
+        activity1.sort = 10
         activity1.words_minute = 10
         activity2 = models.Activity()
-        activity2.order = 20
+        activity2.sort = 20
         activity2.words_minute = 19
         session.list_activities = [
             activity2, activity1
@@ -412,15 +412,15 @@ class CheckWarningsTests(unittest.TestCase):
         main.get_percentile = mock_get_percentile
 
         self.sessions = [
-            mocks.MockSession(status_begin=7, status_end=7, difficulty=8,
+            mocks.MockSession(status_begin="7", status_end=7, difficulty=8,
                               completed_time=dateutil.parser.parse("2015-09-21 20:00+02:00")),
-            mocks.MockSession(status_begin=7, status_end=7, difficulty=8,
+            mocks.MockSession(status_begin="7", status_end=7, difficulty=8,
                               completed_time=dateutil.parser.parse("2015-09-22 20:00+02:00")),
-            mocks.MockSession(status_begin=7, status_end=7, difficulty=8,
+            mocks.MockSession(status_begin="7", status_end=7, difficulty=8,
                               completed_time=dateutil.parser.parse("2015-09-23 20:00+02:00")),
-            mocks.MockSession(status_begin=7, status_end=7, difficulty=8,
+            mocks.MockSession(status_begin="7", status_end=7, difficulty=8,
                               completed_time=dateutil.parser.parse("2015-09-24 20:00+02:00")),
-            mocks.MockSession(status_begin=7, status_end=7, difficulty=8,
+            mocks.MockSession(status_begin="7", status_end=7, difficulty=8,
                               completed_time=dateutil.parser.parse("2015-09-25 20:00+02:00")),
         ]
         self.configuration = mocks.MockOlderConfig()
@@ -466,21 +466,21 @@ class CheckWarningsTests(unittest.TestCase):
 
     def test_mot_difference(self):
         # self.get_filtered_times_value = (0, 0)
-        self.sessions[-1].status_end = self.sessions[-1].status_begin - 1
+        self.sessions[-1].status_end = int(self.sessions[-1].status_begin) - 1
         main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-3.3")
 
         self.append_warning_code_list = []
-        self.sessions[-1].status_end = self.sessions[-1].status_begin - 4
+        self.sessions[-1].status_end = int(self.sessions[-1].status_begin) - 4
         main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-3.2")
 
         self.append_warning_code_list = []
-        self.sessions[-1].status_end = self.sessions[-1].status_begin - 4
-        self.sessions[-2].status_end = self.sessions[-2].status_begin - 4
-        self.sessions[-3].status_end = self.sessions[-3].status_begin - 5
+        self.sessions[-1].status_end = int(self.sessions[-1].status_begin) - 4
+        self.sessions[-2].status_end = int(self.sessions[-2].status_begin) - 4
+        self.sessions[-3].status_end = int(self.sessions[-3].status_begin) - 5
         main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 1)
         self.assertEqual(self.append_warning_code_list[0], "MOT-3.1")
@@ -499,7 +499,7 @@ class CheckWarningsTests(unittest.TestCase):
 
         self.append_warning_code_list = []
         self.get_filtered_times_value = (3, 0)
-        self.sessions[-1].status_end = self.sessions[-1].status_begin - 4
+        self.sessions[-1].status_end = int(self.sessions[-1].status_begin) - 4
         main.check_warnings(self.configuration, [], self.sessions)
         self.assertEqual(len(self.append_warning_code_list), 2)
         self.assertEqual(self.append_warning_code_list[1], "CL-1.1")

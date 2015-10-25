@@ -48,10 +48,16 @@ def get_order(element):
     else:
         return 0
 
+def get_sort(element):
+    if element.sort:
+        return int(element.sort)
+    else:
+        return 0
+
 
 def get_filtered_times(session):
     n = 1.5
-    sorted_activities = sorted(session.list_activities, key=get_order)
+    sorted_activities = sorted(session.list_activities, key=get_sort)
     last = sorted_activities[-1]
     replaced = 0
     words_minute = last.words_minute

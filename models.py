@@ -149,7 +149,7 @@ class Session(Model):
 @DataManager.endpoint
 class Activity(Model):
     _name = ['activity', 'activities']
-    _fields = ['id', 'order', 'times', 'words_minute']
+    _fields = ['id', 'sort', 'times', 'words_minute']
 
 
 @DataManager.endpoint
