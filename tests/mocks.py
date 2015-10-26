@@ -21,6 +21,9 @@ class MockSession:
         cls.get_args = args
         return cls.list_sessions
 
+    def get_pk(self):
+        return None
+
     def save(self):
         pass
 

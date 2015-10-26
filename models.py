@@ -103,7 +103,7 @@ class OlderConfig(Model):
     older = EndpointProperties.BelongsTo('student')
     pattern = EndpointProperties.BelongsTo('pattern')
     workingDays = EndpointProperties.BelongsTo('daysWork')
-    session = EndpointProperties.BelongsTo('sessionModel')
+    session = EndpointProperties.BelongsTo('blockSession')
     block = EndpointProperties.BelongsTo('block')
     warnings = EndpointProperties.HasMany('warning')
     lastBlock = EndpointProperties.BelongsTo('block')

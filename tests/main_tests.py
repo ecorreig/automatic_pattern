@@ -249,9 +249,9 @@ class UpdateConfigTests(unittest.TestCase):
         self.warnings = models.Warnings
         models.Warnings = mocks.MockWarning
 
-        self.bjc = models_tests.generate_block_jump_condition(level=1)
-        bjc2 = models_tests.generate_block_jump_condition(level=1)
-        self.bjd = models_tests.generate_block_jump_default(level=2)
+        self.bjc = models_tests.generate_block_jump_condition(level="1")
+        bjc2 = models_tests.generate_block_jump_condition(level="1")
+        self.bjd = models_tests.generate_block_jump_default(level="2")
         bj = models_tests.generate_block_jump(conditions=[self.bjc, bjc2], defaults=[self.bjd])
         self.configuration = models.OlderConfig()
         self.configuration.warnings = []
@@ -314,6 +314,17 @@ class UpdateConfigTests(unittest.TestCase):
         self.assertEqual(self.configuration.session, self.list_sessions[0])
         self.assertEqual(len(self.configuration.warnings), 1)
         self.assertEqual(self.configuration.warnings[0], mock_warning)
+
+
+class PautaTests(unittest.TestCase):
+    def test(self):
+        mock_session = mocks.MockSession()
+        configuration = mocks.MockOlderConfig()
+        configuration.session = models_tests.generate_block_session(session=mock_session)
+        session = main.pauta(configuration)
+        self.assertEqual(session.student, configuration.older)
+        self.assertEqual(session.publish_date.date(), datetime.date.today())
+        self.assertEqual(session.model_based, mock_session)
 
 
 class GetCountersTests(unittest.TestCase):
@@ -379,7 +390,8 @@ class GenerateLists(unittest.TestCase):
             mocks.MockSession(model=models_session[2], completed_time=None),
             mocks.MockSession(model=models_tests.generate_model_session(), completed_time=None),
         ]
-        list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration, sessions)
+        list_block_sessions, list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration,
+                                                                                                   sessions)
         self.assertEqual(list_sessions, models_session)
         self.assertEqual(sessions_made, [sessions[0], sessions[1]])
         self.assertEqual(sessions_use_data, [models_session[2]])

@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta, time
 import sys
 import traceback
 import numpy as np
-#import mock_numpy as np
+# import mock_numpy as np
 from pytz import timezone
 
 MIN_VALID_HOUR = 7
@@ -47,6 +47,7 @@ def get_order(element):
         return int(element.order)
     else:
         return 0
+
 
 def get_sort(element):
     if element.sort:
@@ -153,39 +154,39 @@ def jump(configuration, jump_config):
         configuration.warnings.append(jump_config.warning)
 
 
-def update_config(configuration, list_sessions, list_sessions_made, list_use_data):
+def update_config(configuration, list_block_sessions, list_sessions_made, list_use_data):
     """
     Update the configuration with the new session to launch
     :param configuration:
-    :param list_sessions: List of model sessions of this block, sorted by order.
+    :param list_block_sessions: List of block sessions sorted by order.
     :param list_sessions_made: List of sessions made by the older
     :param list_use_data: List of sessions that was required the information to check the block jump
     :return: If we jump to another level/block or we continue on the same.
     """
     # print configuration.session, list_sessions
     # print configuration.session.id, map(lambda e: e.id, list_sessions)
-    position = list_sessions.index(configuration.session) + 1
-    if position < len(list_sessions):
-        configuration.session = list_sessions[position]
+    position = list_block_sessions.index(configuration.session) + 1
+    if position < len(list_block_sessions):
+        configuration.session = list_block_sessions[position]
     else:
         jump_block = configuration.block.blockJump
         if jump_block is not None:
-            current_level = configuration.level
+            current_level = int(configuration.level)
             avg_percentile, avg_motivation = get_average_data(configuration.older, list_sessions_made, list_use_data)
             if avg_percentile is not None:
-                conditions = filter(lambda e: e.level == current_level, jump_block.conditions)
+                conditions = filter(lambda e: int(e.level) == current_level, jump_block.conditions)
                 for condition in conditions:
                     if condition.check(avg_percentile, avg_motivation):
                         jump(configuration, condition)
                         return True
 
-            defaults = filter(lambda e: e.level == current_level, jump_block.defaults)
+            defaults = filter(lambda e: int(e.level) == current_level, jump_block.defaults)
             if len(defaults) == 1:
                 jump(configuration, defaults[0])
                 return True
 
         append_warning(configuration, "P-1.2")
-        configuration.session = list_sessions[0]
+        configuration.session = list_block_sessions[0]
     return False
 
 
@@ -199,7 +200,7 @@ def pauta(configuration):
     new_session = models.Session()
     new_session.student = configuration.older
     new_session.publish_date = datetime.today()
-    new_session.model_based = model_session
+    new_session.model_based = model_session.session
 
     return new_session
 
@@ -233,7 +234,7 @@ def generate_lists(configuration, sessions):
                            filter(lambda e: e.model_based in list_sessions, sessions))
     sessions_use_data = map(lambda e: e.session, filter(lambda e: e.useData, list_block_sessions))
 
-    return list_sessions, sessions_made, sessions_use_data
+    return list_block_sessions, list_sessions, sessions_made, sessions_use_data
 
 
 def check_warnings(configuration, all_sessions, sessions_made):
@@ -308,7 +309,7 @@ def run(configuration, monday):
     history = models.PatternHistory()
     sessions = models.Session.get(query="student={older}&count=20".format(older=configuration.older.id))
 
-    list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
+    list_block_sessions, list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
 
     not_done, not_done_pattern, s_week = get_counters(sessions, list_sessions, monday)
     count = int(configuration.numberSessions)
@@ -323,9 +324,10 @@ def run(configuration, monday):
     while (not_done_pattern < 2 * configuration.numberSessions and
                    not_done < 10 and count > 0):
         session = pauta(configuration)
-        hasJump = update_config(configuration, list_sessions, sessions_made, sessions_use_data)
+        hasJump = update_config(configuration, list_block_sessions, sessions_made, sessions_use_data)
         if hasJump:
-            list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
+            list_block_sessions, list_sessions, sessions_made, sessions_use_data = generate_lists(configuration,
+                                                                                                  sessions)
         session.save()
 
         history.sessions.append(session)
@@ -354,6 +356,7 @@ def main(today=date.today()):
 
     for configuration in llista_configurations:
         working = configuration.workingDays
+        print configuration.id
         if getattr(working, today_name):
             configuration.warnings = []
             try:
