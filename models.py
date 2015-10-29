@@ -178,9 +178,9 @@ class BlockJumpCondition(Model):
     warning = EndpointProperties.BelongsTo('warning')
 
     def check(self, percentile, motivation):
-        if self.minPercentile is not None and percentile < self.minPercentile:
+        if self.minPercentile is not None and percentile < int(self.minPercentile):
             return False
-        if self.maxPercentile is not None and percentile >= self.maxPercentile:
+        if self.maxPercentile is not None and percentile >= int(self.maxPercentile):
             return False
         # TODO Check the motivation
         return True

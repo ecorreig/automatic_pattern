@@ -207,7 +207,7 @@ class BlockJumpConditionTest(unittest.TestCase):
 
     def test_only_med(self):
         subject = models.BlockJumpCondition()
-        subject.minPercentile = 30
+        subject.minPercentile = "30"
         subject.maxPercentile = 60
         self.assertFalse(subject.check(self.min_percentile, 0))
         self.assertFalse(subject.check(self.max_percentile, 0))
