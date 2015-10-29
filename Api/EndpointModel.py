@@ -66,6 +66,9 @@ class Model(object):
     def get_pk(self):
         return getattr(self, self._pk)
 
+    def raw(self, attr):
+        return self.__data.get(attr, None).value
+
     def save(self):
         serialized = {}
         _data = self.__data

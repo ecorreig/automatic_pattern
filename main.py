@@ -356,12 +356,12 @@ def main(today=date.today()):
 
     for configuration in llista_configurations:
         working = configuration.workingDays
-        print configuration.id
         if getattr(working, today_name):
             configuration.warnings = []
             try:
                 run(configuration, monday)
             except Exception, e:
+                print "older: {older} config: {pk}".format(older=configuration.raw("older"), pk=configuration.id)
                 append_warning(configuration, "P-1.1")
                 print e
                 type_, value_, traceback_ = sys.exc_info()
