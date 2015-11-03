@@ -252,6 +252,11 @@ def check_warnings(configuration, all_sessions, sessions_made):
         avg_mot_begin_end = np.mean(mot_begin_end)
         last_session = sessions_made[0]
 
+        all_sessions_count=len(all_sessions)
+        all_sessions = filter(lambda e: e.publish_date is not None, all_sessions)
+        if len(all_sessions)!=all_sessions_count:
+            append_warning(configuration, "P-1.5")
+
         all_sessions = sorted(all_sessions, key=lambda e: e.publish_date, reverse=True)
         if len(all_sessions) >= configuration.numberSessions:
             last_sessions = all_sessions[:configuration.numberSessions]

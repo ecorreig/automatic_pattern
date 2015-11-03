@@ -41,6 +41,7 @@ def insert():
     create("P-1.2",4,u"No hi ha més salts de block",u"No hay más saltos de block")
     create("P-1.3",4,u"No hi ha cap sessió feta",u"No hay ninguna sessión hecha")
     create("P-1.4",4,u"Número màxim de sessions pendents",u"Número máximo de sessiones pendientes")
+    create("P-1.5",4,u"Sessions sense data de publicació",u"Sessiones sin fecha de publicación")
     create("SB-1.1",1,u"Salt de bloc amb normalitat",u"Salto de bloque normal")
     create("SB-1.2",1,u"Salt de bloc augmenant la dificultat",u"Salto de bloque aumentado la dificultad")
     create("SB-1.3",1,u"Salt de bloc disminuïnt un nivell la dificultat",u"Salto de bloque disminuyendo la dificultad un nivel")
@@ -49,6 +50,6 @@ def insert():
     create("SB-2.2",3,u"Entrem en un nivell per Olders amb moltes dificultats",u"Entramos en un nivell para Olders con muchas dificultades")
 
 if __name__ == '__main__':
-    #DataManager.sharedManager().set_config('config-beta.json')
+    DataManager.sharedManager().set_config('config-prod.json')
     DataManager.sharedManager().get_all("warning")
     insert()
