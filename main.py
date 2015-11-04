@@ -149,7 +149,7 @@ def jump(configuration, jump_config):
     configuration.level = jump_config.nextLevel
     list_sessions = filter(lambda e: e.level == configuration.level, configuration.block.sessions)
     list_sessions = sorted(list_sessions, key=lambda e: int(e.order))
-    configuration.session = list_sessions[0].session
+    configuration.session = list_sessions[0]
     if jump_config.warning is not None:
         configuration.warnings.append(jump_config.warning)
 

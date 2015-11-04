@@ -201,7 +201,7 @@ class JumpTests(unittest.TestCase):
         self.assertEqual(self.configuration.block, self.b2)
         self.assertEqual(self.configuration.level, 2)
         sessions = filter(lambda e: e.level == 2, self.b2.sessions)
-        self.assertEqual(self.configuration.session, sessions[0].session)
+        self.assertEqual(self.configuration.session, sessions[0])
 
     def test_repeat(self):
         bj = models.BlockJumpDefault()
@@ -212,7 +212,7 @@ class JumpTests(unittest.TestCase):
         self.assertEqual(self.configuration.block, self.b1)
         self.assertEqual(self.configuration.level, 3)
         sessions = filter(lambda e: e.level == 3, self.b1.sessions)
-        self.assertEqual(self.configuration.session, sessions[0].session)
+        self.assertEqual(self.configuration.session, sessions[0])
 
     def test_save_old(self):
         self.configuration.block = self.b1
