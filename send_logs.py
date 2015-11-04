@@ -1,3 +1,5 @@
+import json
+
 __author__ = 'dracks'
 import argparse
 import smtplib
@@ -30,4 +32,5 @@ if __name__ == '__main__':
     content_stderr = open(args.file_stderr).read()
 
     if len(content_stdout) > 3 or len(content_stderr) > 3:
-        send_mail("Something happened", "std_output: \n"+content_stdout+"\n\n std_error:\n"+content_stderr)
+        host = json.load(open('config.json', 'r'))['host']
+        send_mail("[{host}]Something happened".format(host=host), "std_output: \n" + content_stdout + "\n\n std_error:\n" + content_stderr)
