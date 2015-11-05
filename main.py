@@ -91,11 +91,12 @@ def get_percentile(older, session):
     get_course = older.get_course
 
     def filter_callback(e):
-        return e.course == get_course(session.completed_time).id and e.semester == trimester
+        #print "c: {0} vs {1} trimester: {2} vs {3}".format(e.course, get_course(session.completed_time).id, e.semester, trimester)
+        return e.course == get_course(session.completed_time).id and int(e.semester) == trimester
 
     list_percentiles = filter(
         filter_callback,
-        DataManager.sharedManager().retrieve_all('percentiles'))
+        DataManager.sharedManager().retrieve_all('percentile'))
     type_percentile = session.model_based.type_percentile
     for percentile in list_percentiles:
         if percentile.type == type_percentile:
@@ -123,7 +124,7 @@ def get_average_data(older, sessions_made, list_used_sessions):
             ac_percentile += percentile
             count_percentile += 1
         count_motivation += 1
-        ac_motivation += session.status_end
+        ac_motivation += int(session.status_end)
     if count_percentile > 0:
         return float(ac_percentile) / count_percentile, float(ac_motivation) / count_motivation
     else:
@@ -154,24 +155,25 @@ def jump(configuration, jump_config):
         configuration.warnings.append(jump_config.warning)
 
 
-def update_config(configuration, list_block_sessions, list_sessions_made, list_use_data):
+def update_config(configuration, list_sessions_made, list_use_data):
     """
     Update the configuration with the new session to launch
     :param configuration:
-    :param list_block_sessions: List of block sessions sorted by order.
     :param list_sessions_made: List of sessions made by the older
     :param list_use_data: List of sessions that was required the information to check the block jump
     :return: If we jump to another level/block or we continue on the same.
     """
     # print configuration.session, list_sessions
     # print configuration.session.id, map(lambda e: e.id, list_sessions)
+    current_level = int(configuration.level)
+    list_block_sessions = configuration.get_current_block_session()
+    list_block_sessions = sorted(list_block_sessions, key=lambda s: int(s.order))
     position = list_block_sessions.index(configuration.session) + 1
     if position < len(list_block_sessions):
         configuration.session = list_block_sessions[position]
     else:
         jump_block = configuration.block.blockJump
         if jump_block is not None:
-            current_level = int(configuration.level)
             avg_percentile, avg_motivation = get_average_data(configuration.older, list_sessions_made, list_use_data)
             if avg_percentile is not None:
                 conditions = filter(lambda e: int(e.level) == current_level, jump_block.conditions)
@@ -232,9 +234,9 @@ def generate_lists(configuration, sessions):
 
     sessions_made = filter(lambda e: e.completed_time is not None,
                            filter(lambda e: e.model_based in list_sessions, sessions))
-    sessions_use_data = map(lambda e: e.session, filter(lambda e: e.useData, list_block_sessions))
+    sessions_use_data = map(lambda e: e.session, filter(lambda e: e.use_data, configuration.get_current_block_session()))
 
-    return list_block_sessions, list_sessions, sessions_made, sessions_use_data
+    return list_sessions, sessions_made, sessions_use_data
 
 
 def check_warnings(configuration, all_sessions, sessions_made):
@@ -252,9 +254,9 @@ def check_warnings(configuration, all_sessions, sessions_made):
         avg_mot_begin_end = np.mean(mot_begin_end)
         last_session = sessions_made[0]
 
-        all_sessions_count=len(all_sessions)
+        all_sessions_count = len(all_sessions)
         all_sessions = filter(lambda e: e.publish_date is not None, all_sessions)
-        if len(all_sessions)!=all_sessions_count:
+        if len(all_sessions) != all_sessions_count:
             append_warning(configuration, "P-1.5")
 
         all_sessions = sorted(all_sessions, key=lambda e: e.publish_date, reverse=True)
@@ -314,7 +316,7 @@ def run(configuration, monday):
     history = models.PatternHistory()
     sessions = models.Session.get(query="student={older}&count=20".format(older=configuration.older.id))
 
-    list_block_sessions, list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
+    list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
 
     not_done, not_done_pattern, s_week = get_counters(sessions, list_sessions, monday)
     count = int(configuration.numberSessions)
@@ -329,10 +331,10 @@ def run(configuration, monday):
     while (not_done_pattern < 2 * configuration.numberSessions and
                    not_done < 10 and count > 0):
         session = pauta(configuration)
-        hasJump = update_config(configuration, list_block_sessions, sessions_made, sessions_use_data)
+        hasJump = update_config(configuration, sessions_made, sessions_use_data)
         if hasJump:
-            list_block_sessions, list_sessions, sessions_made, sessions_use_data = generate_lists(configuration,
-                                                                                                  sessions)
+            list_sessions, sessions_made, sessions_use_data = generate_lists(configuration,
+                                                                             sessions)
         session.save()
 
         history.sessions.append(session)

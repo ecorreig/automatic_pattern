@@ -9,6 +9,8 @@ def create(code, level, label_ca, label_es):
     warning_list = DataManager.sharedManager().retrieve_all('warning')
     for w in warning_list:
         if w.code == code:
+            if w.name is None:
+                w.name = {}
             w.level = level
             w.name['ca'] = label_ca
             w.name['es'] = label_es
@@ -50,6 +52,6 @@ def insert():
     create("SB-2.2",3,u"Entrem en un nivell per Olders amb moltes dificultats",u"Entramos en un nivell para Olders con muchas dificultades")
 
 if __name__ == '__main__':
-    DataManager.sharedManager().set_config('config-prod.json')
+    #DataManager.sharedManager().set_config('config-prod.json')
     DataManager.sharedManager().get_all("warning")
     insert()

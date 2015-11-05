@@ -60,12 +60,12 @@ class Percentile(Model):
                "p55", "p60", "p65", "p70", "p75", "p80", "p85", "p90", "p95", "p100", "semester"]
 
     def get_value(self, velocity):
-        if velocity < getattr(self, "p0"):
+        if velocity < float(getattr(self, "p0")):
             return 0
 
         for i in range(0, 20):
             percentile = i * 5
-            check = (getattr(self, "p" + str(percentile)) + getattr(self, "p" + str(percentile + 5))) / 2
+            check = (float(getattr(self, "p" + str(percentile))) + float(getattr(self, "p" + str(percentile + 5)))) / 2
             # console.log(percentile+" check : "+ this.get("p"+percentile)+ " vs " + velocity)
             if check >= velocity:
                 # console.log(velocity+" -> "+this.get("p"+percentile)+"-"+this.get("p"+(percentile+5)));
@@ -109,10 +109,14 @@ class OlderConfig(Model):
     lastBlock = EndpointProperties.BelongsTo('block')
 
     def get_list_block_session(self):
-        blocks_session = filter(lambda e: e.level == self.level, self.block.sessions)
+        blocks_session= self.get_current_block_session()
         if self.lastBlock:
             blocks_session.extend(filter(lambda e: e.level == self.lastLevel, self.lastBlock.sessions))
         return blocks_session
+
+    def get_current_block_session(self):
+        current_level=int(self.level)
+        return filter(lambda e: int(e.level) == current_level, self.block.sessions)
 
 
 @DataManager.endpoint
@@ -178,6 +182,7 @@ class BlockJumpCondition(Model):
     warning = EndpointProperties.BelongsTo('warning')
 
     def check(self, percentile, motivation):
+        #print "{0} < {1} < {2}".format(self.minPercentile, percentile, self.maxPercentile)
         if self.minPercentile is not None and percentile < int(self.minPercentile):
             return False
         if self.maxPercentile is not None and percentile >= int(self.maxPercentile):
@@ -198,7 +203,7 @@ class BlockJumpDefault(Model):
 @DataManager.endpoint
 class BlockSession(Model):
     _name = ['blockSession', 'blockSessions']
-    _fields = ['id', 'level', 'order', 'useData', 'session']
+    _fields = ['id', 'level', 'order', 'use_data', 'session']
     session = EndpointProperties.BelongsTo('sessionModel')
 
 

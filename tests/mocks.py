@@ -54,10 +54,14 @@ class MockOlderConfig:
         self.save_count += 1
 
     def get_list_block_session(self):
-        blocks_session = filter(lambda e: e.level == self.level, self.block.sessions)
+        blocks_session = self.get_current_block_session()
         if self.lastBlock:
             blocks_session.extend(filter(lambda e: e.level == self.lastLevel, self.lastBlock.sessions))
         return blocks_session
+
+    def get_current_block_session(self):
+        current_level = int(self.level)
+        return filter(lambda e: int(e.level) == current_level, self.block.sessions)
 
 
 class MockWarning:

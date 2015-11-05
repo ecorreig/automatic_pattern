@@ -255,10 +255,15 @@ class UpdateConfigTests(unittest.TestCase):
         bj = models_tests.generate_block_jump(conditions=[self.bjc, bjc2], defaults=[self.bjd])
         self.configuration = models.OlderConfig()
         self.configuration.warnings = []
+        self.configuration.level = "1"
         self.list_sessions = [
-            models_tests.generate_model_session(),
-            models_tests.generate_model_session(),
-            models_tests.generate_model_session()
+            models_tests.generate_block_session(order=10, level="1"),
+            models_tests.generate_block_session(order=20, level="1"),
+            models_tests.generate_block_session(order=15, level="1"),
+            models_tests.generate_block_session(order=10, level="2"),
+            models_tests.generate_block_session(order=20, level="3"),
+            models_tests.generate_block_session(order=10, level="3")
+
         ]
         self.block = models_tests.generate_block(block_jump=bj, sessions=self.list_sessions)
         self.configuration.block = self.block
@@ -268,17 +273,18 @@ class UpdateConfigTests(unittest.TestCase):
         main.jump = self.jump
 
     def test_next_session(self):
-        self.configuration.session = self.list_sessions[1]
-        main.update_config(self.configuration, self.list_sessions, [], [])
-        self.assertEqual(self.configuration.session, self.list_sessions[2])
+        self.configuration.session = self.list_sessions[2]
+        self.configuration.level = "1"
+        main.update_config(self.configuration, [], [])
+        self.assertEqual(self.configuration.session, self.list_sessions[1])
 
     def test_with_found_average(self):
         self.last_jump_configuration = None
         self.last_jump_condition = None
         self.mock_avg_percentile = 0
-        self.configuration.session = self.list_sessions[2]
+        self.configuration.session = self.list_sessions[1]
         self.configuration.level = 1
-        main.update_config(self.configuration, self.list_sessions, [], [])
+        main.update_config(self.configuration, [], [])
         self.assertEqual(self.last_jump_configuration, self.configuration)
         self.assertEqual(self.last_jump_condition, self.bjc)
 
@@ -286,10 +292,10 @@ class UpdateConfigTests(unittest.TestCase):
         self.last_jump_configuration = None
         self.last_jump_condition = None
         self.mock_avg_percentile = None
-        self.configuration.session = self.list_sessions[2]
+        self.configuration.session = self.list_sessions[3]
         self.configuration.level = 2
         self.configuration.block = self.block
-        main.update_config(self.configuration, self.list_sessions, [], [])
+        main.update_config(self.configuration, [], [])
         self.assertEqual(self.last_jump_configuration, self.configuration)
         self.assertEqual(self.last_jump_condition, self.bjd)
 
@@ -297,20 +303,20 @@ class UpdateConfigTests(unittest.TestCase):
         self.last_jump_configuration = None
         self.last_jump_condition = None
         self.mock_avg_percentile = None
-        self.configuration.session = self.list_sessions[2]
+        self.configuration.session = self.list_sessions[4]
         self.configuration.level = 3
         self.configuration.block = self.block
-        main.update_config(self.configuration, self.list_sessions, [], [])
+        main.update_config(self.configuration, [], [])
         self.assertEqual(self.last_jump_configuration, None)
         self.assertEqual(self.last_jump_condition, None)
-        self.assertEqual(self.configuration.session, self.list_sessions[0])
+        self.assertEqual(self.configuration.session, self.list_sessions[5])
 
     def test_with_not_block_jump(self):
         mock_warning = mocks.MockWarning()
         mocks.MockWarning.retrieve_value = mock_warning
         self.configuration.block = models_tests.generate_block(sessions=self.list_sessions)
-        self.configuration.session = self.list_sessions[2]
-        main.update_config(self.configuration, self.list_sessions, [], [])
+        self.configuration.session = self.list_sessions[1]
+        main.update_config(self.configuration, [], [])
         self.assertEqual(self.configuration.session, self.list_sessions[0])
         self.assertEqual(len(self.configuration.warnings), 1)
         self.assertEqual(self.configuration.warnings[0], mock_warning)
@@ -357,18 +363,25 @@ class GetCountersTests(unittest.TestCase):
 
 class GenerateLists(unittest.TestCase):
     def setUp(self):
-        self.older_config_get_list_block_session = mocks.MockOlderConfig
+        self.older_config_get_list_block_session = mocks.MockOlderConfig.get_list_block_session
+        self.older_config_get_current_block_session = mocks.MockOlderConfig.get_current_block_session
         self.older_config_get_list_block_session_value = []
+        self.older_config_get_current_block_Session_value = []
 
         this = self
 
         def mock_get_list_block_session(self):
             return this.older_config_get_list_block_session_value
 
+        def mock_get_current_block_session(self):
+            return this.older_config_get_current_block_Session_value
+
         mocks.MockOlderConfig.get_list_block_session = mock_get_list_block_session
+        mocks.MockOlderConfig.get_current_block_session = mock_get_current_block_session
 
     def tearDown(self):
-        mocks.MockOlderConfig = self.older_config_get_list_block_session
+        mocks.MockOlderConfig.get_list_block_session = self.older_config_get_list_block_session
+        mocks.MockOlderConfig.get_current_block_session = self.older_config_get_current_block_session
 
     def test_global(self):
         models_session = [
@@ -377,10 +390,11 @@ class GenerateLists(unittest.TestCase):
             models_tests.generate_model_session()
         ]
         self.older_config_get_list_block_session_value = [
-            models_tests.generate_block_session(session=models_session[0], useData=False),
-            models_tests.generate_block_session(session=models_session[1], useData=False),
-            models_tests.generate_block_session(session=models_session[2], useData=True)
+            models_tests.generate_block_session(session=models_session[0], use_data=False),
+            models_tests.generate_block_session(session=models_session[1], use_data=False),
+            models_tests.generate_block_session(session=models_session[2], use_data=True)
         ]
+        self.older_config_get_current_block_Session_value = self.older_config_get_list_block_session_value
         configuration = mocks.MockOlderConfig()
         sessions = [
             mocks.MockSession(model=models_session[0], completed_time=dateutil.parser.parse("2015-09-21")),
@@ -390,8 +404,8 @@ class GenerateLists(unittest.TestCase):
             mocks.MockSession(model=models_session[2], completed_time=None),
             mocks.MockSession(model=models_tests.generate_model_session(), completed_time=None),
         ]
-        list_block_sessions, list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration,
-                                                                                                   sessions)
+        list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration,
+                                                                              sessions)
         self.assertEqual(list_sessions, models_session)
         self.assertEqual(sessions_made, [sessions[0], sessions[1]])
         self.assertEqual(sessions_use_data, [models_session[2]])
@@ -583,7 +597,7 @@ class RunTests(unittest.TestCase):
             self.count["pauta"] += 1
             return mocks.MockSession()
 
-        def mock_update_config(configuration, list_sessions, sessions_made, sessions_use_data):
+        def mock_update_config(configuration, sessions_made, sessions_use_data):
             self.count["update_config"] += 1
 
         def mock_get_counters(sessions, list_sessions, monday):
@@ -605,6 +619,7 @@ class RunTests(unittest.TestCase):
         self.configuration.block = models_tests.generate_block(sessions=[])
         self.configuration.older = models.Older()
         self.configuration.older.id = 1
+        self.configuration.level = "1"
         self.configuration.numberSessions = 2
         self.configuration.maxSessionWeek = 5
 

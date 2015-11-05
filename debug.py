@@ -11,7 +11,7 @@ def debug(config_id):
     def mock_save(self):
         pass
 
-    Model.save = mock_save
+    #Model.save = mock_save
 
     models.Course.get_all()
     models.Percentile.get()
@@ -19,13 +19,15 @@ def debug(config_id):
 
     config = models.OlderConfig.get(config_id)
     monday = program.week_start_date()
+    config.warnings = []
     monday = datetime.combine(monday, datetime.min.time())
     program.run(config, monday)
+    config.save()
 
 
 if __name__ == "__main__":
-    DataManager.sharedManager().set_config('config-prod.json')
-    debug("173")
+    DataManager.sharedManager().set_config('config-beta.json')
+    debug("42")
     # models.Activity.get("2845759")
 
 

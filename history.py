@@ -6,7 +6,7 @@ import argparse
 
 
 def main():
-    list_history = models.PatternHistory.get(query='older=21032')
+    list_history = models.PatternHistory.get(query='older=19080')
     for history in list_history:
         print history.pattern.name, history.day, history.block.name, history.level, \
             map(lambda e: e.code, history.warnings), \
@@ -14,5 +14,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #DataManager.sharedManager().set_config('config-beta.json')
+    DataManager.sharedManager().set_config('config-beta.json')
     main()
