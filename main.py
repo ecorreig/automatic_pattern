@@ -39,7 +39,10 @@ def get_trimester(completed):
 def append_warning(configuration, code):
     warning = models.Warnings.retrieve(code)
     if warning:
-        configuration.warnings.append(warning)
+        if warning not in configuration.warnings:
+            configuration.warnings.append(warning)
+    else:
+        print "Warning not found: {warning} for older: {older}".format(warning=code, older=configuration.older.id)
 
 
 def get_order(element):
@@ -88,21 +91,23 @@ def get_percentile(older, session):
     """
     completed = session.completed_time
     trimester = get_trimester(completed)
-    get_course = older.get_course
+    course = older.get_course(session.completed_time)
+    if course is not None:
+        def filter_callback(e):
+            #print "c: {0} vs {1} trimester: {2} vs {3}".format(e.course, get_course(session.completed_time).id, e.semester, trimester)
+            return e.course == course.id and int(e.semester) == trimester
 
-    def filter_callback(e):
-        #print "c: {0} vs {1} trimester: {2} vs {3}".format(e.course, get_course(session.completed_time).id, e.semester, trimester)
-        return e.course == get_course(session.completed_time).id and int(e.semester) == trimester
-
-    list_percentiles = filter(
-        filter_callback,
-        DataManager.sharedManager().retrieve_all('percentile'))
-    type_percentile = session.model_based.type_percentile
-    for percentile in list_percentiles:
-        if percentile.type == type_percentile:
-            _, times = get_filtered_times(session)
-            return percentile.get_value(times)
-    return None
+        list_percentiles = filter(
+            filter_callback,
+            DataManager.sharedManager().retrieve_all('percentile'))
+        type_percentile = session.model_based.type_percentile
+        for percentile in list_percentiles:
+            if percentile.type == type_percentile:
+                _, times = get_filtered_times(session)
+                return percentile.get_value(times)
+        return None
+    else:
+        raise models.CourseNotFoundException()
 
 
 def get_average_data(older, sessions_made, list_used_sessions):
@@ -174,13 +179,16 @@ def update_config(configuration, list_sessions_made, list_use_data):
     else:
         jump_block = configuration.block.blockJump
         if jump_block is not None:
-            avg_percentile, avg_motivation = get_average_data(configuration.older, list_sessions_made, list_use_data)
-            if avg_percentile is not None:
-                conditions = filter(lambda e: int(e.level) == current_level, jump_block.conditions)
-                for condition in conditions:
-                    if condition.check(avg_percentile, avg_motivation):
-                        jump(configuration, condition)
-                        return True
+            try:
+                avg_percentile, avg_motivation = get_average_data(configuration.older, list_sessions_made, list_use_data)
+                if avg_percentile is not None:
+                    conditions = filter(lambda e: int(e.level) == current_level, jump_block.conditions)
+                    for condition in conditions:
+                        if condition.check(avg_percentile, avg_motivation):
+                            jump(configuration, condition)
+                            return True
+            except models.CourseNotFoundException:
+                append_warning(configuration, "P-1.6")
 
             defaults = filter(lambda e: int(e.level) == current_level, jump_block.defaults)
             if len(defaults) == 1:
@@ -232,7 +240,7 @@ def generate_lists(configuration, sessions):
     # list_block_sessions = sorted(list_block_sessions, key=attrgetter('order'))
     list_sessions = map(lambda e: e.session, list_block_sessions)  # llistat id_sessions del bloc
 
-    sessions_made = filter(lambda e: e.completed_time is not None,
+    sessions_made = filter(lambda e: e.completed_time is not None and e.status_begin is not None,
                            filter(lambda e: e.model_based in list_sessions, sessions))
     sessions_use_data = map(lambda e: e.session, filter(lambda e: e.use_data, configuration.get_current_block_session()))
 
@@ -298,9 +306,12 @@ def check_warnings(configuration, all_sessions, sessions_made):
         elif replaced > 0:
             append_warning(configuration, "CL-1.3")
 
-        percentile = get_percentile(configuration.older, last_session)
-        if percentile < pc and last_session.difficulty < dif:
-            append_warning(configuration, "CL-2.1")
+        try:
+            percentile = get_percentile(configuration.older, last_session)
+            if percentile < pc and last_session.difficulty < dif:
+                append_warning(configuration, "CL-2.1")
+        except models.CourseNotFoundException:
+            append_warning(configuration, "P-1.6")
 
         check_time = last_session.completed_time.astimezone(europe).time()
         min_hour = time(MIN_VALID_HOUR, tzinfo=europe)
@@ -375,11 +386,15 @@ def main(today=date.today()):
                 print "".join(traceback.format_exception(type_, value_, traceback_))
             configuration.save()
 
-
-if __name__ == "__main__":
-    # load cache
+def load_cache():
+    """
+    Load the most part of frecuently used data from the server to don't need to acces
+    :return:
+    """
     models.Course.get_all()
     models.Percentile.get()
     models.Warnings.get()
+
+if __name__ == "__main__":
     # Run the program
     main()

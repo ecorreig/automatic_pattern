@@ -3,19 +3,19 @@ __author__ = 'dracks'
 import models
 import main as program
 from Api.EndpointModel import Model
-from datetime import datetime
+from datetime import datetime, date
+from dateutil import parser
 from Api.Manager import DataManager
 
 
+def mock_save(self):
+    pass
+
+
 def debug(config_id):
-    def mock_save(self):
-        pass
+    # Model.save = mock_save
 
-    #Model.save = mock_save
-
-    models.Course.get_all()
-    models.Percentile.get()
-    models.Warnings.get()
+    program.load_cache()
 
     config = models.OlderConfig.get(config_id)
     monday = program.week_start_date()
@@ -25,14 +25,15 @@ def debug(config_id):
     config.save()
 
 
+def debug_main(day=date.today()):
+    Model.save = mock_save
+    program.load_cache()
+
+    program.main(day)
+
+
 if __name__ == "__main__":
-    DataManager.sharedManager().set_config('config-beta.json')
-    debug("42")
-    # models.Activity.get("2845759")
+    # DataManager.sharedManager().set_config('config-beta.json')
+    # debug("14")
 
-
-    """
-    list = models.Session.get(query="student={older}&count=20".format(older=21034))
-    for session in list:
-        print session.model_based.id, session.status_begin
-    """
+    debug_main(parser.parse("2015/11/09"))

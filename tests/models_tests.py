@@ -78,13 +78,13 @@ def generate_block(pk=None, order=None, block_jump=None, sessions=None):
     return b
 
 
-def generate_block_session(pk=None, level=None, order=None, session=None, useData=None):
+def generate_block_session(pk=None, level=None, order=None, session=None, use_data=None):
     bs = models.BlockSession()
     bs.id = pk
     bs.order = order
     bs.level = level
     bs.session = session
-    bs.useData = useData
+    bs.use_data = use_data
     return bs
 
 
@@ -132,7 +132,7 @@ class PercentilesTest(unittest.TestCase):
     def test_get_percentile(self):
         subject = self.percentile
         self.assertEqual(subject.get_value(0), 0)
-        self.assertEqual(subject.get_value(0.5), 5)
+        self.assertEqual(subject.get_value(0.6), 5)
         self.assertEqual(subject.get_value(20), 105)
 
 
@@ -158,6 +158,7 @@ class OlderTests(unittest.TestCase):
         manager.retrieve_all = mock_retrieve_all
         subject = models.Older()
         subject.birthday = dateutil.parser.parse('2008-08-09T15:06:00Z')
+        subject.group=models.Group()
         date = dateutil.parser.parse('2018-08-09')
         self.assertEqual(subject.get_course(date), mock_course)
         self.assertEqual(subject.get_course(), None)

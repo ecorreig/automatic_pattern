@@ -397,11 +397,11 @@ class GenerateLists(unittest.TestCase):
         self.older_config_get_current_block_Session_value = self.older_config_get_list_block_session_value
         configuration = mocks.MockOlderConfig()
         sessions = [
-            mocks.MockSession(model=models_session[0], completed_time=dateutil.parser.parse("2015-09-21")),
-            mocks.MockSession(model=models_session[1], completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[0], status_begin=5, completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[1], status_begin=5,completed_time=dateutil.parser.parse("2015-09-21")),
             mocks.MockSession(model=models_tests.generate_model_session(),
-                              completed_time=dateutil.parser.parse("2015-09-21")),
-            mocks.MockSession(model=models_session[2], completed_time=None),
+                              status_begin=5,completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[2], status_begin=5,completed_time=None),
             mocks.MockSession(model=models_tests.generate_model_session(), completed_time=None),
         ]
         list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration,

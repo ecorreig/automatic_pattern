@@ -6,6 +6,10 @@ from Api.EndpointModel import Model
 from datetime import datetime
 
 
+class CourseNotFoundException(Exception):
+    pass
+
+
 @DataManager.endpoint
 class Language(Model):
     _name = ['language', 'languages']
@@ -31,9 +35,9 @@ class Older(Model):
                 age -= 1
 
             for course in DataManager.sharedManager().retrieve_all('course'):
-                if course.age == age:
+                if int(course.age) == age:
                     return course
-            return None
+            return self.group.course
         else:
             # Thats not good, we don't use the date.
             return self.group.course
@@ -109,13 +113,13 @@ class OlderConfig(Model):
     lastBlock = EndpointProperties.BelongsTo('block')
 
     def get_list_block_session(self):
-        blocks_session= self.get_current_block_session()
+        blocks_session = self.get_current_block_session()
         if self.lastBlock:
             blocks_session.extend(filter(lambda e: e.level == self.lastLevel, self.lastBlock.sessions))
         return blocks_session
 
     def get_current_block_session(self):
-        current_level=int(self.level)
+        current_level = int(self.level)
         return filter(lambda e: int(e.level) == current_level, self.block.sessions)
 
 
@@ -182,7 +186,7 @@ class BlockJumpCondition(Model):
     warning = EndpointProperties.BelongsTo('warning')
 
     def check(self, percentile, motivation):
-        #print "{0} < {1} < {2}".format(self.minPercentile, percentile, self.maxPercentile)
+        # print "{0} < {1} < {2}".format(self.minPercentile, percentile, self.maxPercentile)
         if self.minPercentile is not None and percentile < int(self.minPercentile):
             return False
         if self.maxPercentile is not None and percentile >= int(self.maxPercentile):
@@ -218,7 +222,7 @@ class Warnings(Model):
         for warning in list_warnings:
             if warning.code == code:
                 return warning
-        print "Warning not found - {code}".format(code=code)
+        #print "Warning not found - {code}".format(code=code)
         return None
 
 
