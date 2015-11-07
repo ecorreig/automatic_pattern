@@ -396,5 +396,6 @@ def load_cache():
     models.Warnings.get()
 
 if __name__ == "__main__":
+    load_cache()
     # Run the program
     main()
