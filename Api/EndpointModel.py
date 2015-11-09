@@ -1,3 +1,5 @@
+import sys
+import traceback
 from Api.EndpointProperties import Property
 
 __author__ = 'dracks'
@@ -21,7 +23,15 @@ class Model(object):
             # print field, value
             if hasattr(self, field):
                 attr = getattr(self, field)
-                self.__data[field] = attr.instantiate(value)
+                try:
+                    self.__data[field] = attr.instantiate(value)
+                except ValueError as e:
+                    print "**WARNING! data format value invalid** (continue execution)"
+                    print "Class:{} id:{} field:{} value:{}".format(self._name[0], data[self._pk], field, value)
+                    print e
+                    type_, value_, traceback_ = sys.exc_info()
+                    print "".join(traceback.format_exception(type_, value_, traceback_))
+                    attr.instantiate(None)
             else:
                 attr = Property(value)
                 self.__data[field] = attr
