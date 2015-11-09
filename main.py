@@ -104,7 +104,7 @@ def get_percentile(older, session):
         for percentile in list_percentiles:
             if percentile.type == type_percentile:
                 _, times = get_filtered_times(session)
-                return percentile.get_value(times)
+                return percentile.get_value(60/times*1000)
         return None
     else:
         raise models.CourseNotFoundException()
