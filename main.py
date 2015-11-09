@@ -77,7 +77,7 @@ def get_filtered_times(session):
                 list_times.remove(value)
             else:
                 i += 1
-        words_minute = np.mean(list_times)
+        words_minute = 60/np.mean(list_times)*1000
 
     return replaced, words_minute
 
@@ -104,7 +104,7 @@ def get_percentile(older, session):
         for percentile in list_percentiles:
             if percentile.type == type_percentile:
                 _, times = get_filtered_times(session)
-                return percentile.get_value(60/times*1000)
+                return percentile.get_value(times)
         return None
     else:
         raise models.CourseNotFoundException()

@@ -40,7 +40,7 @@ class GetFilteredTimesTests(unittest.TestCase):
         session = models_tests.generate_session(activities=[activity])
         deleted, words_minute = main.get_filtered_times(session)
         self.assertEqual(deleted, 1)
-        self.assertEqual(int(words_minute), 133)
+        self.assertEqual(int(words_minute*1000), 449933)
 
     def test_activities_sort(self):
         a = models.Activity()
@@ -51,7 +51,7 @@ class GetFilteredTimesTests(unittest.TestCase):
         a2.times = "1,1,1,1,2,2,2,2,8,10"
         deleted, words_minute = main.get_filtered_times(models_tests.generate_session(activities=[a, a2]))
         self.assertEqual(deleted, 2)
-        self.assertEqual(words_minute, 1.5)
+        self.assertEqual(words_minute, 60*1000/1.5)
 
 
 class GetPercentileTest(unittest.TestCase):
@@ -59,8 +59,18 @@ class GetPercentileTest(unittest.TestCase):
         self.percentiles = []
         this = self
 
+        self.get_filtered_times_value = (0,0)
+        self.get_filtered_times_last_session = None
+        self.mock_get_filtered_times = main.get_filtered_times
+
         def mock_retrieve_all(model):
             return this.percentiles
+
+        def mock_get_filtered_times(session):
+            self.get_filtered_times_last_session = session
+            return self.get_filtered_times_value
+
+        main.get_filtered_times = mock_get_filtered_times
 
         DataManager.sharedManager().retrieve_all = mock_retrieve_all
         self.mock_older = models.Older()
@@ -74,6 +84,9 @@ class GetPercentileTest(unittest.TestCase):
 
         self.model_session2 = models.ModelSession()
         self.model_session2.type_percentile = 4
+
+    def tearDown(self):
+        main.get_filtered_times = self.mock_get_filtered_times
 
     def test_get_not_valid(self):
         session1 = models.Session()
@@ -110,9 +123,11 @@ class GetPercentileTest(unittest.TestCase):
         self.assertIsNone(main.get_percentile(self.mock_older, session))
         session.model_based = self.model_session2
         self.assertIsNone(main.get_percentile(self.mock_older, session))
+        self.get_filtered_times_value = (0,19)
 
         self.mock_older.group.course.id = 6
         r = main.get_percentile(self.mock_older, session)
+        self.assertEqual(self.get_filtered_times_last_session, session)
         self.assertIsNotNone(r)
         self.assertEqual(r, 20)
 
@@ -397,11 +412,13 @@ class GenerateLists(unittest.TestCase):
         self.older_config_get_current_block_Session_value = self.older_config_get_list_block_session_value
         configuration = mocks.MockOlderConfig()
         sessions = [
-            mocks.MockSession(model=models_session[0], status_begin=5, completed_time=dateutil.parser.parse("2015-09-21")),
-            mocks.MockSession(model=models_session[1], status_begin=5,completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[0], status_begin=5,
+                              completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[1], status_begin=5,
+                              completed_time=dateutil.parser.parse("2015-09-21")),
             mocks.MockSession(model=models_tests.generate_model_session(),
-                              status_begin=5,completed_time=dateutil.parser.parse("2015-09-21")),
-            mocks.MockSession(model=models_session[2], status_begin=5,completed_time=None),
+                              status_begin=5, completed_time=dateutil.parser.parse("2015-09-21")),
+            mocks.MockSession(model=models_session[2], status_begin=5, completed_time=None),
             mocks.MockSession(model=models_tests.generate_model_session(), completed_time=None),
         ]
         list_sessions, sessions_made, sessions_use_data = main.generate_lists(configuration,
