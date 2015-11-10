@@ -330,7 +330,8 @@ def run(configuration, monday):
     list_sessions, sessions_made, sessions_use_data = generate_lists(configuration, sessions)
 
     not_done, not_done_pattern, s_week = get_counters(sessions, list_sessions, monday)
-    count = int(configuration.numberSessions)
+    numberSessions = int(configuration.numberSessions)
+    count = numberSessions
 
     check_warnings(configuration, filter(lambda e: e.model_based in list_sessions, sessions), sessions_made)
 
@@ -339,7 +340,7 @@ def run(configuration, monday):
 
     history.sessions = []
 
-    while (not_done_pattern < 2 * configuration.numberSessions and
+    while (not_done_pattern < 2 * numberSessions and
                    not_done < 10 and count > 0):
         session = pauta(configuration)
         hasJump = update_config(configuration, sessions_made, sessions_use_data)
