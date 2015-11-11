@@ -638,7 +638,7 @@ class RunTests(unittest.TestCase):
         self.configuration.older.id = 1
         self.configuration.level = "1"
         self.configuration.numberSessions = 2
-        self.configuration.maxSessionWeek = 5
+        self.configuration.maxSessionsWeek = 5
 
     def tearDown(self):
         main.pauta = self.pauta
@@ -676,7 +676,7 @@ class RunTests(unittest.TestCase):
         self.assertEqual(mocks.MockSession.get_args['query'], 'student=1&count=20')
 
     def test_no_max_sessions_week(self):
-        self.configuration.maxSessionWeek = None
+        self.configuration.maxSessionsWeek = None
         self.get_counters_value = (0, 0, 4)
         main.run(self.configuration, "monday")
         self.assertEqual(self.count['pauta'], 2)

@@ -44,6 +44,7 @@ class MockOlderConfig:
         self.older = None
         self.lastLevel = None
         self.lastBlock = None
+        self.maxSessionsWeek = None
 
     @classmethod
     def get(cls):
