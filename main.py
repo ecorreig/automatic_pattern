@@ -335,8 +335,8 @@ def run(configuration, monday):
 
     check_warnings(configuration, filter(lambda e: e.model_based in list_sessions, sessions), sessions_made)
 
-    if configuration.maxSessionWeek is not None:
-        count = min(int(configuration.maxSessionWeek) - s_week, count)
+    if configuration.maxSessionsWeek is not None:
+        count = min(int(configuration.maxSessionsWeek) - s_week, count)
 
     history.sessions = []
 

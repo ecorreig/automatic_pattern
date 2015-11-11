@@ -102,7 +102,7 @@ class Pattern(Model):
 @DataManager.endpoint
 class OlderConfig(Model):
     _name = ['olderPatternRelation', 'olderPatternRelations']
-    _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions', 'maxSessionWeek', 'block', 'level', 'session',
+    _fields = ['id', 'older', 'pattern', 'workingDays', 'numberSessions', 'maxSessionsWeek', 'block', 'level', 'session',
                'lastBlock', 'lastLevel', 'warnings']
     older = EndpointProperties.BelongsTo('student')
     pattern = EndpointProperties.BelongsTo('pattern')
