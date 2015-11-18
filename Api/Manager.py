@@ -2,10 +2,7 @@ __author__ = 'dracks'
 
 from Connector import Connector
 import json
-
 import sys, traceback
-
-# from EndpointModel import Model as AbstractModel
 
 class DataManager:
     __manager = None
@@ -40,6 +37,23 @@ class DataManager:
         conf = json.load(open(config, 'r'))
         cls._con = Connector(conf['host'], conf['path'], conf['token'])
 
+        renew = conf.get('renew', None)
+        if renew:
+            #It's not the best option, but is only used for that.
+            from models import ApiSession
+
+            newSession = ApiSession()
+            # I known this hack is not great, should require a little refactor of code.
+            newSession._manager = cls
+            newSession.token = conf['token']
+            newSession.renew = renew
+            newSession.save()
+            conf['token'] = newSession.id
+            conf['expiration'] = newSession.expiration
+            conf['renew'] = newSession.renew
+            json.dump(conf, open(config, 'w'), indent=4)
+            cls._con = Connector(conf['host'], conf['path'], conf['token'])
+
     def query(self, cls, request=None, query=None):
         """
 
@@ -50,7 +64,7 @@ class DataManager:
         :return:
         """
         if isinstance(cls, str):
-            cls_name=cls
+            cls_name = cls
             cls = self.get(cls)
             assert cls is not None, "The class name {c} is not registered".format(c=cls_name)
 
