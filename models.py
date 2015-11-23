@@ -235,5 +235,5 @@ class PatternHistory(Model):
     pattern = EndpointProperties.BelongsTo('pattern')
     day = EndpointProperties.DateProperty()
     block = EndpointProperties.BelongsTo('block')
-    sessions = EndpointProperties.HasMany('session')
+    sessions = EndpointProperties.HasMany('sessionModel')
     warnings = EndpointProperties.HasMany('warning')

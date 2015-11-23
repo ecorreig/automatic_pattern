@@ -349,7 +349,7 @@ def run(configuration, monday):
                                                                              sessions)
         session.save()
 
-        history.sessions.append(session)
+        history.sessions.append(session.model_based)
 
         not_done_pattern += 1
         not_done += 1
