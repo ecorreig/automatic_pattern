@@ -31,7 +31,7 @@ class Model(object):
                     print e
                     type_, value_, traceback_ = sys.exc_info()
                     print "".join(traceback.format_exception(type_, value_, traceback_))
-                    attr.instantiate(None)
+                    self.__data[field] = attr.instantiate(None)
             else:
                 attr = Property(value)
                 self.__data[field] = attr
