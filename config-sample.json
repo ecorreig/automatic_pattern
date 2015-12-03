@@ -1,5 +1,6 @@
 {
-    "host":"localhost",
-    "path":"/~dracks/Binding/app/api/",
-    "token": "00beed69f09ec1eed865d97a9b84e527e346f05b"
+    "host":"server",
+    "path":"/api/",
+    "token": "123456",
+    "renew": "567890"
 }
